@@ -13,10 +13,3 @@ export const ezAsync = {
 };
 
 export type { EzAsync, Action, EzAsyncState } from "./internal/common";
-
-// TODO test EzAsyncMemoMut
-// TODO remove arguments from EzAsync
-// TODO fix all stale docstrings!
-// TODO hash options
-// TODO boring action (action for non mut where every action is followed by stale)
-// TODO find a way to instantiate a controller inside ezFeatureComponent
