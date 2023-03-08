@@ -1,16 +1,18 @@
-import { makeAutoObservable, observable, runInAction } from "mobx";
-import { Fetcher, EzAsyncState, EzAsync } from "./common";
+import { makeAutoObservable, runInAction } from "mobx";
+import { Fetcher, EzAsync, EzValue } from "./common";
 
-export class EzAsyncBase<Fe extends Fetcher<any, []>> {
-  public ez: EzAsync<Fe>;
+export class EzAsyncBase<Fe extends Fetcher<any, []>> implements EzAsync<Fe> {
+  public ez: EzValue<Fe>;
+  public fetch;
+  public forceFetch;
 
-  private constructor(fetcher: Fe) {
-    const state = observable.box<EzAsyncState>("uninitialized");
-    const forceFetch = async () => {
-      if (state.get() === "fetching") return;
+  public constructor(fetcher: Fe) {
+    const state: { current: "uninitialized" } = { current: "uninitialized" };
+    this.forceFetch = async () => {
+      if (this.ez.state.current === "fetching") return;
 
       runInAction(() => {
-        state.set("fetching");
+        this.ez.state.current = "fetching";
       });
 
       try {
@@ -18,30 +20,26 @@ export class EzAsyncBase<Fe extends Fetcher<any, []>> {
 
         runInAction(() => {
           this.ez.value = value;
-          state.set("done");
+          this.ez.state.current = "done";
         });
       } catch (err) {
-        runInAction(() => state.set("error"));
+        runInAction(() => this.ez.state.current = "error");
         throw err;
       }
     };
 
-    const fetch = async () => {
-      if (state.get() === "done") return;
+    this.fetch = async () => {
+      if (this.ez.state.current === "done") return;
 
-      await forceFetch();
+      await this.forceFetch();
     };
 
-    const stale = () => state.set("stale");
+    const stale = () => {
+      if (this.ez.state.current === "done") this.ez.state.current = "stale";
+    };
 
-    this.ez = { value: null, fetch, forceFetch, state, stale };
+    this.ez = { value: null, state, stale };
 
-    makeAutoObservable(this);
+    makeAutoObservable<EzAsyncBase<Fe>, "state">(this);
   }
-
-  public static new = <Getter extends Fetcher<any, []>>(fetcher: Getter) => {
-    const asyncValue = new EzAsyncBase<typeof fetcher>(fetcher);
-
-    return asyncValue as EzAsyncBase<Getter>;
-  };
 }

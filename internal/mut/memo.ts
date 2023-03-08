@@ -22,7 +22,7 @@ export class EzAsyncMemoMut<
         const hash = hasher(...args);
         let asyncValue = this.ezMemoMut.cache.get(hash) ?? null;
         if (asyncValue === null) {
-          asyncValue = EzAsyncMut.new<EmptyFetcherArgs<Getter>, A>(
+          asyncValue = new EzAsyncMut<EmptyFetcherArgs<Getter>, A>(
             async () => await fetcher(...args),
             actions as A
           );
@@ -31,7 +31,7 @@ export class EzAsyncMemoMut<
           runInAction(() => this.ezMemoMut.cache.set(hash, asyncValue!));
         }
         runInAction(() => (this.ezMemoMut.current = asyncValue));
-        await asyncValue?.ezMut.fetch();
+        await asyncValue?.fetch();
       },
       stale: () => this.ezMemoMut.cache.forEach((ezMut) => ezMut),
     };

@@ -1,6 +1,5 @@
-import { IObservableValue, observable, runInAction, when } from "mobx";
+import { observable, runInAction, when } from "mobx";
 import {
-  EzAsyncMut as EzAsyncMutClass,
   AsyncAction as AsyncActionClass,
 } from "./mut";
 import { EzAsyncBase } from "./base";
@@ -45,11 +44,7 @@ export type EzAsyncState =
 /**
  * An object type for the base ezAsync class. It's the core primitive of the library.
  */
-export type EzAsync<Fe extends Fetcher<any, []> = Fetcher<any, []>> = {
-  /**
-   * The current value of the async value. Initially null until a fetch has been performed.
-   */
-  value: RTA<Fe> | null;
+export interface EzAsync<Getter extends Fetcher<any, []>> {
   /**
    * A fetcher function that will fetch the async value.
    *
@@ -65,19 +60,30 @@ export type EzAsync<Fe extends Fetcher<any, []> = Fetcher<any, []>> = {
    */
   forceFetch: Fetcher<void, []>;
   /**
-   * The current state of the async value. Can be one of "uninitialized", "fetching", "done", "stale", or "error".
-   */
-  state: IObservableValue<EzAsyncState>;
-  /**
    * A function that sets the state of the async value to "stale". This indicates that the next fetch should not use the cached value.
    */
-  stale: () => void;
-};
+  ez: EzValue<Getter>
+}
 
-export type EzAsyncMut<
+export type EzValue<Getter extends Fetcher<any, []> = Fetcher<any, []>> = (({
+  value: null;
+  state: { current: Extract<EzAsyncState, "uninitialized"> };
+} | {
+  value: RTA<Getter> | null;
+  state: { current: Extract<EzAsyncState, "fetching" | "error"> };
+} | {
+  value: RTA<Getter>;
+  state: { current: Extract<EzAsyncState, "done" | "stale"> };
+}) & { stale: () => void; });
+
+export interface EzAsyncMut<
   Getter extends EmptyFetcherArgs,
   A extends Record<GKey, Action<Getter>>
-> = ReturnType<typeof EzAsyncMutClass.new<Getter, A>>;
+> {
+  fetch: () => Promise<void>;
+  ez: EzValue<Getter>;
+  actions: ActionToAsyncAction<Getter, A>;
+}
 
 export type EzAsyncMemo<
   Getter extends Fetcher = Fetcher,
@@ -88,11 +94,11 @@ export type EzAsyncMemo<
   /**
    * A Map containing memoization cache of Ez instances.
    */
-  cache: Map<ReturnType<Hasher>, { ez: EzAsync<EmptyFetcherArgs<Getter>> }>;
+  cache: Map<ReturnType<Hasher>, EzAsync<EmptyFetcherArgs<Getter>>>;
   /**
    * A reference to the currently (last) fetched value.
    */
-  current: { ez: EzAsync<EmptyFetcherArgs<Getter>> } | null;
+  current: EzAsync<EmptyFetcherArgs<Getter>> | null;
   /**
    * Forces a fetch with the given arguments and updates the cache and the current reference.
    *
@@ -126,7 +132,7 @@ export type EzAsyncMemoMut<
  * A synchronous function that is called after a successful fetch and can be used to execute some side effect.
  */
 export type Effect<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
-  ez: Pick<EzAsync<Getter>, "value" | "state" | "stale">;
+  ez: EzValue<Getter>;
   result: RTA<Fe>;
   args: Parameters<Fe>;
 }) => void;
@@ -135,7 +141,7 @@ export type Effect<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
  * A  function that is called before a fetch and can be used to execute some side effect.
  */
 export type PreFetch<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
-  ez: Pick<EzAsync<Getter>, "value" | "state" | "stale">;
+  ez: EzValue<Getter>;
   args: Parameters<Fe>;
 }) => void;
 
@@ -143,7 +149,7 @@ export type PreFetch<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
  * An async function that is called after a failed fetch and can be used to handle the error.
  */
 export type OnFetchError<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
-  ez: Pick<EzAsync<Getter>, "value" | "state" | "stale">;
+  ez: EzValue<Getter>;
   args: Parameters<Fe>;
   error: unknown;
 }) => void;

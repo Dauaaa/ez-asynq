@@ -3,40 +3,30 @@ import { EzAsyncBase } from "../base";
 import {
   Fetcher,
   Action,
-  EzAsync,
   EmptyFetcherArgs,
-  ActionToAsyncAction,
   OrderedActionScheduler,
+  ActionToAsyncAction,
   GKey,
+  EzAsyncMut as EzAsyncMutType,
+  EzValue,
 } from "../common";
 
-export class EzAsyncMut<Getter extends EmptyFetcherArgs> {
-  public ezMut;
+export class EzAsyncMut<Getter extends EmptyFetcherArgs, A extends Record<GKey, Action<Getter>>> implements EzAsyncMutType<Getter, A> {
+  public fetch;
+  public ez;
+  public actions;
 
-  private constructor(fetcher: Getter) {
-    const asyncValue = EzAsyncBase.new(fetcher);
-    this.ezMut = asyncValue.ez;
-  }
-
-  public static new<
-    Getter extends EmptyFetcherArgs,
-    A extends Record<GKey, Action<Getter>>
-  >(fetcher: Getter, actions: A) {
-    const asyncValueMut = new EzAsyncMut(fetcher);
+  public constructor(fetcher: Getter, actions: A) {
+    const ezAsync = new EzAsyncBase(fetcher);
+    this.ez = ezAsync.ez;
+    this.fetch = ezAsync.fetch;
     const orderedActionScheduler = new OrderedActionScheduler();
-    const asyncActions = Object.fromEntries(
+    this.actions = Object.fromEntries(
       Object.entries(actions).map(([key, action]) => [
         key,
-        AsyncAction.new(orderedActionScheduler, asyncValueMut.ezMut, action),
+        AsyncAction.new(orderedActionScheduler, this.ez, action),
       ])
-    );
-
-    (asyncValueMut.ezMut as any).actions = asyncActions;
-
-    return asyncValueMut as Omit<
-      typeof asyncValueMut,
-      "forceFetch"
-    > & { ezMut: { actions: ActionToAsyncAction<Getter, A> } };
+    ) as unknown as ActionToAsyncAction<Getter, A>;
   }
 }
 
@@ -63,11 +53,11 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
    */
   private constructor(
     orderedActionScheduler: OrderedActionScheduler,
-    ez: EzAsync<Getter>,
+    ez: EzValue<Getter>,
     action: Action<Getter, Fe>
   ) {
     this.call = async (...args: Parameters<Fe>) => {
-      if (ez.state.get() === "uninitialized") {
+      if (ez.state.current === "uninitialized") {
         console.error(
           "Actions should not be executed on uninitialized ez values!",
           ez,
@@ -83,9 +73,9 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
           runInAction(() => {
             if (action.preFetch) action.preFetch({ ez, args });
           });
-          await when(() => ez.state.get() !== "fetching");
+          await when(() => ez.state.current !== "fetching");
 
-          if (ez.state.get() !== "done") {
+          if (ez.state.current !== "done") {
             throw new Error(
               "ez value is stale or an error occured during fetching"
             );
@@ -111,11 +101,11 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
 
   public static new = <Getter extends Fetcher, Fe extends Fetcher>(
     orderedActionScheduler: OrderedActionScheduler,
-    asyncValue: EzAsync<Getter>,
+    asyncValue: EzValue<Getter>,
     action: Action<Getter, Fe>
   ) => {
     const asyncAction = new AsyncAction<
-      typeof asyncValue extends EzAsync<infer G> ? G : never,
+      typeof asyncValue extends EzValue<infer G> ? G : never,
       typeof action.fetcher
     >(orderedActionScheduler, asyncValue, action);
 

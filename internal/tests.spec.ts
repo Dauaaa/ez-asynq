@@ -14,22 +14,22 @@ describe("EzAsyncBase", () => {
       return { id, name: "John Doe" };
     };
 
-    const asyncValue = EzAsyncBase.new(() => fetcher(1));
+    const asyncValue = new EzAsyncBase(() => fetcher(1));
 
-    expect(asyncValue.ez.state.get()).toBe("uninitialized");
+    expect(asyncValue.ez.state.current).toBe("uninitialized");
 
-    await asyncValue.ez.fetch();
+    await asyncValue.fetch();
 
     expect(asyncValue.ez.value?.id).toBe(1);
     expect(asyncValue.ez.value?.name).toBe("John Doe");
-    expect(asyncValue.ez.state.get()).toBe("done");
+    expect(asyncValue.ez.state.current).toBe("done");
 
     asyncValue.ez.stale();
-    expect(asyncValue.ez.state.get()).toBe("stale");
+    expect(asyncValue.ez.state.current).toBe("stale");
 
-    await asyncValue.ez.fetch();
+    await asyncValue.fetch();
 
-    expect(asyncValue.ez.state.get()).toBe("done");
+    expect(asyncValue.ez.state.current).toBe("done");
     expect(asyncValue.ez.value?.id).toBe(1);
   });
 
@@ -38,34 +38,44 @@ describe("EzAsyncBase", () => {
       return { id, name: "John Doe" };
     };
 
-    const asyncValue = EzAsyncBase.new(() => fetcher(1));
+    const asyncValue = new EzAsyncBase(() => fetcher(1));
 
-    expect(asyncValue.ez.state.get()).toBe("uninitialized");
+    expect(asyncValue.ez.state.current).toBe("uninitialized");
 
-    await asyncValue.ez.fetch();
+    await asyncValue.fetch();
 
     expect(asyncValue.ez.value?.id).toBe(1);
     expect(asyncValue.ez.value?.name).toBe("John Doe");
-    expect(asyncValue.ez.state.get()).toBe("done");
+    expect(asyncValue.ez.state.current).toBe("done");
 
-    await asyncValue.ez.fetch();
+    await asyncValue.fetch();
 
-    expect(asyncValue.ez.state.get()).toBe("done");
+    expect(asyncValue.ez.state.current).toBe("done");
     expect(asyncValue.ez.value?.id).toBe(1);
   });
+
+  it.concurrent("Should infer value type correctly", async () => {
+    const fetcher = async () => await Promise.resolve([123]);
+
+    const ezValue = new EzAsyncBase(fetcher);
+
+    if (ezValue.ez.state.current === "uninitialized") {
+      ezValue.ez.value
+    }
+  })
 
   it.concurrent("should throw error on fetch error", async () => {
     const fetcher = async () => {
       throw new Error("fetch error");
     };
 
-    const asyncValue = EzAsyncBase.new(fetcher);
+    const asyncValue = new EzAsyncBase(fetcher);
 
     try {
-      await asyncValue.ez.fetch();
+      await asyncValue.fetch();
     } catch (error) {
       expect((error as any).message).toBe("fetch error");
-      expect(asyncValue.ez.state.get()).toBe("error");
+      expect(asyncValue.ez.state.current).toBe("error");
     }
   });
 });
@@ -76,7 +86,7 @@ describe("AsyncMemo", () => {
       return Promise.resolve(arg * 2);
     };
 
-    const memo = EzAsyncMemo.newHasher(asyncFn, (n: number) => n);
+    const memo = new EzAsyncMemo(asyncFn, (n: number) => n);
 
     await memo.ezMemo.fetch(2);
     expect(memo.ezMemo.current?.ez.value).toBe(4);
@@ -94,7 +104,7 @@ describe("AsyncMemo", () => {
       return Promise.resolve(arg * 2);
     };
 
-    const memo = EzAsyncMemo.new(asyncFn);
+    const memo = new EzAsyncMemo(asyncFn);
 
     await memo.ezMemo.fetch(2);
     expect(memo.ezMemo.current?.ez.value).toBe(4);
@@ -112,7 +122,9 @@ describe("AsyncMemo", () => {
       return Promise.resolve(arg * 2);
     };
 
-    const memo = EzAsyncMemo.new(asyncFn);
+    const memo = new EzAsyncMemo(asyncFn);
+
+    memo.ezMemo.cache
 
     await memo.ezMemo.fetch(2);
     expect(memo.ezMemo.current?.ez.value).toBe(4);
@@ -134,7 +146,7 @@ describe("AsyncMemo", () => {
       return await Promise.resolve(n + 2);
     };
 
-    const memo = EzAsyncMemo.newHasher(getter, (n: number) => n);
+    const memo = new EzAsyncMemo(getter, (n: number) => n);
 
     await memo.ezMemo.fetch(1);
     await memo.ezMemo.fetch(2);
@@ -179,38 +191,36 @@ describe("Mut", () => {
   beforeEach(() => void vitest.clearAllMocks());
   describe("EzAsyncMut", () => {
     it.concurrent("intializes value correctly", async () => {
-      const arr = EzAsyncMut.new(async () => await fetcher("ab"), {
+      const arr = new EzAsyncMut(async () => await fetcher("ab"), {
         add: action,
       });
 
-      await arr.ezMut.fetch();
+      await arr.fetch();
 
-      expect(arr.ezMut.value).toStrictEqual(["ab"]);
+      expect(arr.ez.value).toStrictEqual(["ab"]);
     });
 
     it.concurrent("Action ordering should be preserved", async () => {
-      const arr = EzAsyncMut.new(async () => await fetcher("ab"), {
+      const arr = new EzAsyncMut(async () => await fetcher("ab"), {
         add: action,
       });
 
-      await arr.ezMut.fetch();
+      await arr.fetch();
 
-      console.log(arr.ezMut.actions);
+      void arr.actions.add("1", 300);
+      void arr.actions.add("2", 1);
+      void arr.actions.add("3", 1);
+      void arr.actions.add("4", 600);
 
-      void arr.ezMut.actions.add("1", 300);
-      void arr.ezMut.actions.add("2", 1);
-      void arr.ezMut.actions.add("3", 1);
-      void arr.ezMut.actions.add("4", 600);
-
-      expect(arr.ezMut.value).toStrictEqual(["ab"]);
+      expect(arr.ez.value).toStrictEqual(["ab"]);
 
       await sleep(600);
 
-      expect(arr.ezMut.value).toStrictEqual(["ab", "1", "2", "3"]);
+      expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3"]);
 
       await sleep(500);
 
-      expect(arr.ezMut.value).toStrictEqual(["ab", "1", "2", "3", "4"]);
+      expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3", "4"]);
     });
   });
 
@@ -219,29 +229,29 @@ describe("Mut", () => {
       const memo = EzAsyncMemoMut.new(fetcher, { addStr: memoAction });
 
       await memo.ezMemoMut.fetch("first");
-      expect(memo.ezMemoMut.current?.ezMut.value).toStrictEqual(["first"]);
+      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual(["first"]);
 
       await memo.ezMemoMut.fetch("second");
-      expect(memo.ezMemoMut.current?.ezMut.value).toStrictEqual(["second"]);
+      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual(["second"]);
 
       await memo.ezMemoMut.fetch("second");
-      expect(memo.ezMemoMut.current?.ezMut.value).toStrictEqual(["second"]);
+      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual(["second"]);
     });
 
     it("Updates state with actions", async () => {
       const memo = EzAsyncMemoMut.new(fetcher, { addStr: memoAction });
 
       await memo.ezMemoMut.fetch("first");
-      expect(memo.ezMemoMut.current?.ezMut.value).toStrictEqual(["first"]);
+      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual(["first"]);
 
-      await memo.ezMemoMut.current?.ezMut.actions.addStr("second", 0);
-      expect(memo.ezMemoMut.current?.ezMut.value).toStrictEqual([
+      await memo.ezMemoMut.current?.actions.addStr("second", 0);
+      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual([
         "first",
         "second",
       ]);
 
       await memo.ezMemoMut.fetch("new");
-      await memo.ezMemoMut.current?.ezMut.actions.addStr("newnew", 0);
+      await memo.ezMemoMut.current?.actions.addStr("newnew", 0);
     });
   });
 
@@ -263,11 +273,11 @@ describe("Mut", () => {
 
     expect(memo.ezMemoMut.cache.size).toBe(6);
     expect(callCount).toBe(6);
-    expect(memo.ezMemoMut.cache.get(1)?.ezMut.value).toBe(3);
-    expect(memo.ezMemoMut.cache.get(2)?.ezMut.value).toBe(4);
-    expect(memo.ezMemoMut.cache.get(3)?.ezMut.value).toBe(5);
-    expect(memo.ezMemoMut.cache.get(4)?.ezMut.value).toBe(6);
-    expect(memo.ezMemoMut.cache.get(5)?.ezMut.value).toBe(7);
-    expect(memo.ezMemoMut.cache.get(6)?.ezMut.value).toBe(8);
+    expect(memo.ezMemoMut.cache.get(1)?.ez.value).toBe(3);
+    expect(memo.ezMemoMut.cache.get(2)?.ez.value).toBe(4);
+    expect(memo.ezMemoMut.cache.get(3)?.ez.value).toBe(5);
+    expect(memo.ezMemoMut.cache.get(4)?.ez.value).toBe(6);
+    expect(memo.ezMemoMut.cache.get(5)?.ez.value).toBe(7);
+    expect(memo.ezMemoMut.cache.get(6)?.ez.value).toBe(8);
   });
 });
