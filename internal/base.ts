@@ -1,7 +1,9 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { Fetcher, EzAsync as EzAsyncInterface, EzValue } from "./common";
 
-export class EzAsync<Fe extends Fetcher<any, []>> implements EzAsyncInterface<Fe> {
+export class EzAsync<Fe extends Fetcher<any, []>>
+  implements EzAsyncInterface<Fe>
+{
   public ez: EzValue<Fe>;
   public fetch;
   public forceFetch;
@@ -23,7 +25,7 @@ export class EzAsync<Fe extends Fetcher<any, []>> implements EzAsyncInterface<Fe
           this.ez.state.current = "done";
         });
       } catch (err) {
-        runInAction(() => this.ez.state.current = "error");
+        runInAction(() => (this.ez.state.current = "error"));
         throw err;
       }
     };

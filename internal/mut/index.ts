@@ -11,7 +11,11 @@ import {
   EzValue,
 } from "../common";
 
-export class EzAsyncMut<Getter extends EmptyFetcherArgs, A extends Record<GKey, Action<Getter>>> implements EzAsyncMutInterface<Getter, A> {
+export class EzAsyncMut<
+  Getter extends EmptyFetcherArgs,
+  A extends Record<GKey, Action<Getter>>
+> implements EzAsyncMutInterface<Getter, A>
+{
   public fetch;
   public ez;
   public actions;

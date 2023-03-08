@@ -11,8 +11,11 @@ import { EzAsync } from "./base";
  */
 export class EzAsyncMemo<
   Fe extends Fetcher,
-  Hasher extends (...args: Parameters<Fe>) => any = (...args: Parameters<Fe>) => string
-> implements EzAsyncMemoInterface<Fe, Hasher> {
+  Hasher extends (...args: Parameters<Fe>) => any = (
+    ...args: Parameters<Fe>
+  ) => string
+> implements EzAsyncMemoInterface<Fe, Hasher>
+{
   public cache: EzAsyncMemoInterface<Fe, Hasher>["cache"] = new Map();
   public current: EzAsyncMemoInterface<Fe, Hasher>["current"] = null;
   public fetch = async (...args: Parameters<Fe>) => {
@@ -21,8 +24,7 @@ export class EzAsyncMemo<
   public forceFetch = async (...args: Parameters<Fe>) => {
     await this.fetchGeneric("forceFetch", ...args);
   };
-  public stale = () =>
-    this.cache.forEach(({ ez }) => ez.stale());
+  public stale = () => this.cache.forEach(({ ez }) => ez.stale());
   /**
    * The constructor of the class.
    *

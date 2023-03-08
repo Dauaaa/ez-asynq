@@ -60,9 +60,9 @@ describe("EzAsyncBase", () => {
     const ezValue = new EzAsync(fetcher);
 
     if (ezValue.ez.state.current === "uninitialized") {
-      ezValue.ez.value
+      ezValue.ez.value;
     }
-  })
+  });
 
   it.concurrent("should throw error on fetch error", async () => {
     const fetcher = async () => {
@@ -124,7 +124,7 @@ describe("AsyncMemo", () => {
 
     const memo = new EzAsyncMemo(asyncFn);
 
-    memo.cache
+    memo.cache;
 
     await memo.fetch(2);
     expect(memo.current?.ez.value).toBe(4);
@@ -245,10 +245,7 @@ describe("Mut", () => {
       expect(memo.current?.ez.value).toStrictEqual(["first"]);
 
       await memo.current?.actions.addStr("second", 0);
-      expect(memo.current?.ez.value).toStrictEqual([
-        "first",
-        "second",
-      ]);
+      expect(memo.current?.ez.value).toStrictEqual(["first", "second"]);
 
       await memo.fetch("new");
       await memo.current?.actions.addStr("newnew", 0);

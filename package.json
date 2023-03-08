@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest",
     "lint": "eslint --ext .ts .",
-    "lint-fix": "eslint --ext .ts . --fix"
+    "lint-fix": "eslint --ext .ts . --fix",
+    "format": "prettier --write \"**/*[.ts,.tsx]\""
   },
   "author": "Dauaaa",
   "license": "ISC",
@@ -20,6 +21,7 @@
     "@typescript-eslint/eslint-plugin": "^5.54.1",
     "@typescript-eslint/parser": "^5.54.1",
     "eslint": "^8.35.0",
+    "prettier": "^2.8.4",
     "typescript": "^4.9.5"
   }
 }

@@ -1,7 +1,5 @@
 import { observable, runInAction, when } from "mobx";
-import {
-  AsyncAction as AsyncActionClass,
-} from "./mut";
+import { AsyncAction as AsyncActionClass } from "./mut";
 
 export type GKey = string | symbol | number;
 export type IFromClass<C> = Pick<C, keyof C>;
@@ -59,19 +57,23 @@ export interface EzAsync<Getter extends Fetcher<any, []>> {
   /**
    * A function that sets the state of the async value to "stale". This indicates that the next fetch should not use the cached value.
    */
-  ez: EzValue<Getter>
+  ez: EzValue<Getter>;
 }
 
-export type EzValue<Getter extends Fetcher<any, []> = Fetcher<any, []>> = (({
-  value: null;
-  state: { current: Extract<EzAsyncState, "uninitialized"> };
-} | {
-  value: RTA<Getter> | null;
-  state: { current: Extract<EzAsyncState, "fetching" | "error"> };
-} | {
-  value: RTA<Getter>;
-  state: { current: Extract<EzAsyncState, "done" | "stale"> };
-}) & { stale: () => void; });
+export type EzValue<Getter extends Fetcher<any, []> = Fetcher<any, []>> = (
+  | {
+      value: null;
+      state: { current: Extract<EzAsyncState, "uninitialized"> };
+    }
+  | {
+      value: RTA<Getter> | null;
+      state: { current: Extract<EzAsyncState, "fetching" | "error"> };
+    }
+  | {
+      value: RTA<Getter>;
+      state: { current: Extract<EzAsyncState, "done" | "stale"> };
+    }
+) & { stale: () => void };
 
 export interface EzAsyncMut<
   Getter extends EmptyFetcherArgs,
@@ -193,8 +195,8 @@ export type AsyncAction<
 
 export type ActionToAsyncAction<Getter extends Fetcher, A extends object> = {
   [Key in keyof A]: A[Key] extends Action<Getter>
-  ? AsyncAction<Getter, A[Key]>
-  : never;
+    ? AsyncAction<Getter, A[Key]>
+    : never;
 };
 
 /**
@@ -234,7 +236,7 @@ export type EzAsyncAny =
   | EzAsyncMemo<Fetcher, (...args: any[]) => any>
   | EzAsyncMut<EmptyFetcherArgs, Record<GKey, Action<EmptyFetcherArgs>>>
   | EzAsyncMemoMut<
-    Fetcher,
-    (...args: any[]) => any,
-    Record<GKey, Action<EmptyFetcherArgs>>
-  >;
+      Fetcher,
+      (...args: any[]) => any,
+      Record<GKey, Action<EmptyFetcherArgs>>
+    >;

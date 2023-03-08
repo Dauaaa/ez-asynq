@@ -20,8 +20,8 @@ export const ezDIFactory = <
           ...props
         }: { dependencies: Deps; hooks: Hooks } & P) => React.ReactElement
       ) =>
-        (props: P) =>
-          <Component {...props} dependencies={dependencies} hooks={hooks} />,
+      (props: P) =>
+        <Component {...props} dependencies={dependencies} hooks={hooks} />,
     controller:
       <P extends any[], C extends any>(
         controllerConstructor: (
@@ -29,7 +29,7 @@ export const ezDIFactory = <
           ...args: P
         ) => C
       ) =>
-        (...args: P) =>
-          controllerConstructor({ dependencies, hooks }, ...args),
+      (...args: P) =>
+        controllerConstructor({ dependencies, hooks }, ...args),
   };
 };

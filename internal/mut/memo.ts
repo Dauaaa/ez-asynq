@@ -12,12 +12,12 @@ export class EzAsyncMemoMut<
   Getter extends Fetcher,
   Hasher extends (...args: Parameters<Getter>) => any,
   A extends Record<GKey, Action<EmptyFetcherArgs<Getter>>>
-> implements EzAsyncMemoMutInterface<Getter, Hasher, A> {
+> implements EzAsyncMemoMutInterface<Getter, Hasher, A>
+{
   public cache: EzAsyncMemoMutInterface<Getter, Hasher, A>["cache"] = new Map();
   public current: EzAsyncMemoMutInterface<Getter, Hasher, A>["current"] = null;
   public fetch;
-  public stale = () =>
-    this.cache.forEach(({ ez }) => ez.stale());
+  public stale = () => this.cache.forEach(({ ez }) => ez.stale());
 
   private constructor(fetcher: Getter, hasher: Hasher, actions: A) {
     this.fetch = async (...args: Parameters<Getter>) => {
@@ -34,7 +34,7 @@ export class EzAsyncMemoMut<
       }
       runInAction(() => (this.current = asyncValue));
       await asyncValue?.fetch();
-    }
+    };
 
     makeAutoObservable(this);
   }
