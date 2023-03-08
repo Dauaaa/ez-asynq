@@ -1,8 +1,8 @@
-import { EzAsyncBase } from "./base";
-import { EzAsyncMut } from "./mut";
-import { EzAsyncMemo } from "./memo";
-import { Action, EmptyFetcherArgs } from "./common";
-import { EzAsyncMemoMut } from "./mut/memo";
+import { EzAsync } from "../base";
+import { EzAsyncMut } from "../mut";
+import { EzAsyncMemo } from "../memo";
+import { Action, EmptyFetcherArgs } from "../common";
+import { EzAsyncMemoMut } from "../mut/memo";
 import { describe, it, expect, vitest, beforeEach } from "vitest";
 
 const sleep = async (time: number) =>
@@ -14,7 +14,7 @@ describe("EzAsyncBase", () => {
       return { id, name: "John Doe" };
     };
 
-    const asyncValue = new EzAsyncBase(() => fetcher(1));
+    const asyncValue = new EzAsync(() => fetcher(1));
 
     expect(asyncValue.ez.state.current).toBe("uninitialized");
 
@@ -38,7 +38,7 @@ describe("EzAsyncBase", () => {
       return { id, name: "John Doe" };
     };
 
-    const asyncValue = new EzAsyncBase(() => fetcher(1));
+    const asyncValue = new EzAsync(() => fetcher(1));
 
     expect(asyncValue.ez.state.current).toBe("uninitialized");
 
@@ -57,7 +57,7 @@ describe("EzAsyncBase", () => {
   it.concurrent("Should infer value type correctly", async () => {
     const fetcher = async () => await Promise.resolve([123]);
 
-    const ezValue = new EzAsyncBase(fetcher);
+    const ezValue = new EzAsync(fetcher);
 
     if (ezValue.ez.state.current === "uninitialized") {
       ezValue.ez.value
@@ -69,7 +69,7 @@ describe("EzAsyncBase", () => {
       throw new Error("fetch error");
     };
 
-    const asyncValue = new EzAsyncBase(fetcher);
+    const asyncValue = new EzAsync(fetcher);
 
     try {
       await asyncValue.fetch();
