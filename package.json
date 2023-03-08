@@ -1,6 +1,6 @@
 {
   "name": "ez-async",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A domain driven async kit for typescript, powered by mobx.",
   "main": "index.ts",
   "scripts": {
