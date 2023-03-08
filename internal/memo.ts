@@ -12,19 +12,17 @@ import { EzAsyncBase } from "./base";
 export class EzAsyncMemo<
   Fe extends Fetcher,
   Hasher extends (...args: Parameters<Fe>) => any = (...args: Parameters<Fe>) => string
-> {
-  public ezMemo: EzAsyncMemoType<Fe, Hasher> = {
-    cache: new Map(),
-    current: null,
-    fetch: async (...args: Parameters<Fe>) => {
-      await this.fetchGeneric("fetch", ...args);
-    },
-    forceFetch: async (...args: Parameters<Fe>) => {
-      await this.fetchGeneric("forceFetch", ...args);
-    },
-    stale: () =>
-      this.ezMemo.cache.forEach(({ ez }) => ez.stale()),
+> implements EzAsyncMemoType<Fe, Hasher> {
+  public cache: EzAsyncMemoType<Fe, Hasher>["cache"] = new Map();
+  public current: EzAsyncMemoType<Fe, Hasher>["current"] = null;
+  public fetch = async (...args: Parameters<Fe>) => {
+    await this.fetchGeneric("fetch", ...args);
   };
+  public forceFetch = async (...args: Parameters<Fe>) => {
+    await this.fetchGeneric("forceFetch", ...args);
+  };
+  public stale = () =>
+    this.cache.forEach(({ ez }) => ez.stale());
   /**
    * The constructor of the class.
    *
@@ -48,14 +46,14 @@ export class EzAsyncMemo<
     ...args: Parameters<typeof this.fetcher>
   ): Promise<void> => {
     const hash = this.hasher(...args);
-    let asyncValue = this.ezMemo.cache.get(hash) ?? null;
+    let asyncValue = this.cache.get(hash) ?? null;
     if (asyncValue === null) {
       asyncValue = new EzAsyncBase(async () => await this.fetcher(...args));
       // SAFETY: variable was just assign a value.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      runInAction(() => this.ezMemo.cache.set(hash, asyncValue!));
+      runInAction(() => this.cache.set(hash, asyncValue!));
     }
-    runInAction(() => (this.ezMemo.current = asyncValue));
+    runInAction(() => (this.current = asyncValue));
     await asyncValue[type]();
   };
 }

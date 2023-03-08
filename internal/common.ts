@@ -85,12 +85,12 @@ export interface EzAsyncMut<
   actions: ActionToAsyncAction<Getter, A>;
 }
 
-export type EzAsyncMemo<
+export interface EzAsyncMemo<
   Getter extends Fetcher = Fetcher,
   Hasher extends (...args: Parameters<Getter>) => any = (
     ...args: Parameters<Getter>
   ) => string
-> = {
+> {
   /**
    * A Map containing memoization cache of Ez instances.
    */
@@ -117,11 +117,11 @@ export type EzAsyncMemo<
   stale: () => void;
 };
 
-export type EzAsyncMemoMut<
+export interface EzAsyncMemoMut<
   Getter extends Fetcher,
   Hasher extends (...args: Parameters<Getter>) => any,
   A extends Record<GKey, Action<Getter>>
-> = {
+> {
   cache: Map<ReturnType<Hasher>, EzAsyncMut<EmptyFetcherArgs<Getter>, A>>;
   current: EzAsyncMut<EmptyFetcherArgs<Getter>, A> | null;
   fetch: Fetcher<void, Parameters<Getter>>;

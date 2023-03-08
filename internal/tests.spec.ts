@@ -88,15 +88,15 @@ describe("AsyncMemo", () => {
 
     const memo = new EzAsyncMemo(asyncFn, (n: number) => n);
 
-    await memo.ezMemo.fetch(2);
-    expect(memo.ezMemo.current?.ez.value).toBe(4);
+    await memo.fetch(2);
+    expect(memo.current?.ez.value).toBe(4);
 
-    await memo.ezMemo.fetch(4);
-    expect(memo.ezMemo.current?.ez.value).toBe(8);
+    await memo.fetch(4);
+    expect(memo.current?.ez.value).toBe(8);
 
-    expect(memo.ezMemo.cache.size).toBe(2);
+    expect(memo.cache.size).toBe(2);
 
-    memo.ezMemo.cache.get(2);
+    memo.cache.get(2);
   });
 
   it.concurrent("EzAsyncMemo: stale", async () => {
@@ -106,13 +106,13 @@ describe("AsyncMemo", () => {
 
     const memo = new EzAsyncMemo(asyncFn);
 
-    await memo.ezMemo.fetch(2);
-    expect(memo.ezMemo.current?.ez.value).toBe(4);
+    await memo.fetch(2);
+    expect(memo.current?.ez.value).toBe(4);
 
-    memo.ezMemo.stale();
+    memo.stale();
 
-    await memo.ezMemo.fetch(3);
-    expect(memo.ezMemo.current?.ez.value).toBe(6);
+    await memo.fetch(3);
+    expect(memo.current?.ez.value).toBe(6);
   });
 
   it.concurrent("EzAsyncMemo: memoization", async () => {
@@ -124,18 +124,18 @@ describe("AsyncMemo", () => {
 
     const memo = new EzAsyncMemo(asyncFn);
 
-    memo.ezMemo.cache
+    memo.cache
 
-    await memo.ezMemo.fetch(2);
-    expect(memo.ezMemo.current?.ez.value).toBe(4);
+    await memo.fetch(2);
+    expect(memo.current?.ez.value).toBe(4);
     expect(callCount).toBe(1);
 
-    await memo.ezMemo.fetch(2);
-    expect(memo.ezMemo.current?.ez.value).toBe(4);
+    await memo.fetch(2);
+    expect(memo.current?.ez.value).toBe(4);
     expect(callCount).toBe(1);
 
-    await memo.ezMemo.fetch(3);
-    expect(memo.ezMemo.current?.ez.value).toBe(6);
+    await memo.fetch(3);
+    expect(memo.current?.ez.value).toBe(6);
     expect(callCount).toBe(2);
   });
 
@@ -148,21 +148,21 @@ describe("AsyncMemo", () => {
 
     const memo = new EzAsyncMemo(getter, (n: number) => n);
 
-    await memo.ezMemo.fetch(1);
-    await memo.ezMemo.fetch(2);
-    await memo.ezMemo.fetch(3);
-    await memo.ezMemo.fetch(4);
-    await memo.ezMemo.fetch(5);
-    await memo.ezMemo.fetch(6);
+    await memo.fetch(1);
+    await memo.fetch(2);
+    await memo.fetch(3);
+    await memo.fetch(4);
+    await memo.fetch(5);
+    await memo.fetch(6);
 
-    expect(memo.ezMemo.cache.size).toBe(6);
+    expect(memo.cache.size).toBe(6);
     expect(callCount).toBe(6);
-    expect(memo.ezMemo.cache.get(1)?.ez.value).toBe(3);
-    expect(memo.ezMemo.cache.get(2)?.ez.value).toBe(4);
-    expect(memo.ezMemo.cache.get(3)?.ez.value).toBe(5);
-    expect(memo.ezMemo.cache.get(4)?.ez.value).toBe(6);
-    expect(memo.ezMemo.cache.get(5)?.ez.value).toBe(7);
-    expect(memo.ezMemo.cache.get(6)?.ez.value).toBe(8);
+    expect(memo.cache.get(1)?.ez.value).toBe(3);
+    expect(memo.cache.get(2)?.ez.value).toBe(4);
+    expect(memo.cache.get(3)?.ez.value).toBe(5);
+    expect(memo.cache.get(4)?.ez.value).toBe(6);
+    expect(memo.cache.get(5)?.ez.value).toBe(7);
+    expect(memo.cache.get(6)?.ez.value).toBe(8);
   });
 });
 
@@ -228,30 +228,30 @@ describe("Mut", () => {
     it("Switches concurrent between fetches correctly", async () => {
       const memo = EzAsyncMemoMut.new(fetcher, { addStr: memoAction });
 
-      await memo.ezMemoMut.fetch("first");
-      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual(["first"]);
+      await memo.fetch("first");
+      expect(memo.current?.ez.value).toStrictEqual(["first"]);
 
-      await memo.ezMemoMut.fetch("second");
-      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual(["second"]);
+      await memo.fetch("second");
+      expect(memo.current?.ez.value).toStrictEqual(["second"]);
 
-      await memo.ezMemoMut.fetch("second");
-      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual(["second"]);
+      await memo.fetch("second");
+      expect(memo.current?.ez.value).toStrictEqual(["second"]);
     });
 
     it("Updates state with actions", async () => {
       const memo = EzAsyncMemoMut.new(fetcher, { addStr: memoAction });
 
-      await memo.ezMemoMut.fetch("first");
-      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual(["first"]);
+      await memo.fetch("first");
+      expect(memo.current?.ez.value).toStrictEqual(["first"]);
 
-      await memo.ezMemoMut.current?.actions.addStr("second", 0);
-      expect(memo.ezMemoMut.current?.ez.value).toStrictEqual([
+      await memo.current?.actions.addStr("second", 0);
+      expect(memo.current?.ez.value).toStrictEqual([
         "first",
         "second",
       ]);
 
-      await memo.ezMemoMut.fetch("new");
-      await memo.ezMemoMut.current?.actions.addStr("newnew", 0);
+      await memo.fetch("new");
+      await memo.current?.actions.addStr("newnew", 0);
     });
   });
 
@@ -264,20 +264,20 @@ describe("Mut", () => {
 
     const memo = EzAsyncMemoMut.newHasher(getter, (n: number) => n, {});
 
-    await memo.ezMemoMut.fetch(1);
-    await memo.ezMemoMut.fetch(2);
-    await memo.ezMemoMut.fetch(3);
-    await memo.ezMemoMut.fetch(4);
-    await memo.ezMemoMut.fetch(5);
-    await memo.ezMemoMut.fetch(6);
+    await memo.fetch(1);
+    await memo.fetch(2);
+    await memo.fetch(3);
+    await memo.fetch(4);
+    await memo.fetch(5);
+    await memo.fetch(6);
 
-    expect(memo.ezMemoMut.cache.size).toBe(6);
+    expect(memo.cache.size).toBe(6);
     expect(callCount).toBe(6);
-    expect(memo.ezMemoMut.cache.get(1)?.ez.value).toBe(3);
-    expect(memo.ezMemoMut.cache.get(2)?.ez.value).toBe(4);
-    expect(memo.ezMemoMut.cache.get(3)?.ez.value).toBe(5);
-    expect(memo.ezMemoMut.cache.get(4)?.ez.value).toBe(6);
-    expect(memo.ezMemoMut.cache.get(5)?.ez.value).toBe(7);
-    expect(memo.ezMemoMut.cache.get(6)?.ez.value).toBe(8);
+    expect(memo.cache.get(1)?.ez.value).toBe(3);
+    expect(memo.cache.get(2)?.ez.value).toBe(4);
+    expect(memo.cache.get(3)?.ez.value).toBe(5);
+    expect(memo.cache.get(4)?.ez.value).toBe(6);
+    expect(memo.cache.get(5)?.ez.value).toBe(7);
+    expect(memo.cache.get(6)?.ez.value).toBe(8);
   });
 });

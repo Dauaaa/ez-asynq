@@ -12,29 +12,29 @@ export class EzAsyncMemoMut<
   Getter extends Fetcher,
   Hasher extends (...args: Parameters<Getter>) => any,
   A extends Record<GKey, Action<EmptyFetcherArgs<Getter>>>
-> {
-  public ezMemoMut: EzAsyncMemoMutType<Getter, Hasher, A>;
+> implements EzAsyncMemoMutType<Getter, Hasher, A> {
+  public cache: EzAsyncMemoMutType<Getter, Hasher, A>["cache"] = new Map();
+  public current: EzAsyncMemoMutType<Getter, Hasher, A>["current"] = null;
+  public fetch;
+  public stale = () =>
+    this.cache.forEach(({ ez }) => ez.stale());
+
   private constructor(fetcher: Getter, hasher: Hasher, actions: A) {
-    this.ezMemoMut = {
-      cache: new Map(),
-      current: null,
-      fetch: async (...args: Parameters<Getter>) => {
-        const hash = hasher(...args);
-        let asyncValue = this.ezMemoMut.cache.get(hash) ?? null;
-        if (asyncValue === null) {
-          asyncValue = new EzAsyncMut<EmptyFetcherArgs<Getter>, A>(
-            async () => await fetcher(...args),
-            actions as A
-          );
-          // SAFETY: variable was just assign a value.
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          runInAction(() => this.ezMemoMut.cache.set(hash, asyncValue!));
-        }
-        runInAction(() => (this.ezMemoMut.current = asyncValue));
-        await asyncValue?.fetch();
-      },
-      stale: () => this.ezMemoMut.cache.forEach((ezMut) => ezMut),
-    };
+    this.fetch = async (...args: Parameters<Getter>) => {
+      const hash = hasher(...args);
+      let asyncValue = this.cache.get(hash) ?? null;
+      if (asyncValue === null) {
+        asyncValue = new EzAsyncMut<EmptyFetcherArgs<Getter>, A>(
+          async () => await fetcher(...args),
+          actions as A
+        );
+        // SAFETY: variable was just assign a value.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        runInAction(() => this.cache.set(hash, asyncValue!));
+      }
+      runInAction(() => (this.current = asyncValue));
+      await asyncValue?.fetch();
+    }
 
     makeAutoObservable(this);
   }
