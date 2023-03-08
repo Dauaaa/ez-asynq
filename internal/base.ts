@@ -1,7 +1,7 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import { Fetcher, EzAsync, EzValue } from "./common";
+import { Fetcher, EzAsync as EzAsyncInterface, EzValue } from "./common";
 
-export class EzAsyncBase<Fe extends Fetcher<any, []>> implements EzAsync<Fe> {
+export class EzAsync<Fe extends Fetcher<any, []>> implements EzAsyncInterface<Fe> {
   public ez: EzValue<Fe>;
   public fetch;
   public forceFetch;
@@ -40,6 +40,6 @@ export class EzAsyncBase<Fe extends Fetcher<any, []>> implements EzAsync<Fe> {
 
     this.ez = { value: null, state, stale };
 
-    makeAutoObservable<EzAsyncBase<Fe>, "state">(this);
+    makeAutoObservable<EzAsync<Fe>, "state">(this);
   }
 }

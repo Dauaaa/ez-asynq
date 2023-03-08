@@ -1,5 +1,5 @@
 import { makeAutoObservable, runInAction, when } from "mobx";
-import { EzAsyncBase } from "../base";
+import { EzAsync } from "../base";
 import {
   Fetcher,
   Action,
@@ -7,17 +7,17 @@ import {
   OrderedActionScheduler,
   ActionToAsyncAction,
   GKey,
-  EzAsyncMut as EzAsyncMutType,
+  EzAsyncMut as EzAsyncMutInterface,
   EzValue,
 } from "../common";
 
-export class EzAsyncMut<Getter extends EmptyFetcherArgs, A extends Record<GKey, Action<Getter>>> implements EzAsyncMutType<Getter, A> {
+export class EzAsyncMut<Getter extends EmptyFetcherArgs, A extends Record<GKey, Action<Getter>>> implements EzAsyncMutInterface<Getter, A> {
   public fetch;
   public ez;
   public actions;
 
   public constructor(fetcher: Getter, actions: A) {
-    const ezAsync = new EzAsyncBase(fetcher);
+    const ezAsync = new EzAsync(fetcher);
     this.ez = ezAsync.ez;
     this.fetch = ezAsync.fetch;
     const orderedActionScheduler = new OrderedActionScheduler();

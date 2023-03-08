@@ -2,9 +2,6 @@ import { observable, runInAction, when } from "mobx";
 import {
   AsyncAction as AsyncActionClass,
 } from "./mut";
-import { EzAsyncBase } from "./base";
-import { EzAsyncMemo as EzAsyncMemoClass } from "./memo";
-import { EzAsyncMemoMut as EzAsyncMemoMutClass } from "./mut/memo";
 
 export type GKey = string | symbol | number;
 export type IFromClass<C> = Pick<C, keyof C>;
@@ -115,7 +112,7 @@ export interface EzAsyncMemo<
    * Sets all the memoization cache entries to be stale.
    */
   stale: () => void;
-};
+}
 
 export interface EzAsyncMemoMut<
   Getter extends Fetcher,
@@ -126,7 +123,7 @@ export interface EzAsyncMemoMut<
   current: EzAsyncMut<EmptyFetcherArgs<Getter>, A> | null;
   fetch: Fetcher<void, Parameters<Getter>>;
   stale: () => void;
-};
+}
 
 /**
  * A synchronous function that is called after a successful fetch and can be used to execute some side effect.
@@ -233,13 +230,11 @@ export class OrderedActionScheduler {
 }
 
 export type EzAsyncAny =
-  | IFromClass<EzAsyncBase<EmptyFetcherArgs>>
-  | IFromClass<EzAsyncMemoClass<Fetcher, (...args: any[]) => any>>
+  | EzAsync<EmptyFetcherArgs>
+  | EzAsyncMemo<Fetcher, (...args: any[]) => any>
   | EzAsyncMut<EmptyFetcherArgs, Record<GKey, Action<EmptyFetcherArgs>>>
-  | IFromClass<
-    EzAsyncMemoMutClass<
-      Fetcher,
-      (...args: any[]) => any,
-      Record<GKey, Action<EmptyFetcherArgs>>
-    >
+  | EzAsyncMemoMut<
+    Fetcher,
+    (...args: any[]) => any,
+    Record<GKey, Action<EmptyFetcherArgs>>
   >;

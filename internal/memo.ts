@@ -1,6 +1,6 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import { EzAsyncMemo as EzAsyncMemoType, Fetcher } from "./common";
-import { EzAsyncBase } from "./base";
+import { EzAsyncMemo as EzAsyncMemoInterface, Fetcher } from "./common";
+import { EzAsync } from "./base";
 
 /**
  * A utility class for memoizing the results of an asynchronous function call using `EzAsync`.
@@ -12,9 +12,9 @@ import { EzAsyncBase } from "./base";
 export class EzAsyncMemo<
   Fe extends Fetcher,
   Hasher extends (...args: Parameters<Fe>) => any = (...args: Parameters<Fe>) => string
-> implements EzAsyncMemoType<Fe, Hasher> {
-  public cache: EzAsyncMemoType<Fe, Hasher>["cache"] = new Map();
-  public current: EzAsyncMemoType<Fe, Hasher>["current"] = null;
+> implements EzAsyncMemoInterface<Fe, Hasher> {
+  public cache: EzAsyncMemoInterface<Fe, Hasher>["cache"] = new Map();
+  public current: EzAsyncMemoInterface<Fe, Hasher>["current"] = null;
   public fetch = async (...args: Parameters<Fe>) => {
     await this.fetchGeneric("fetch", ...args);
   };
@@ -48,7 +48,7 @@ export class EzAsyncMemo<
     const hash = this.hasher(...args);
     let asyncValue = this.cache.get(hash) ?? null;
     if (asyncValue === null) {
-      asyncValue = new EzAsyncBase(async () => await this.fetcher(...args));
+      asyncValue = new EzAsync(async () => await this.fetcher(...args));
       // SAFETY: variable was just assign a value.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       runInAction(() => this.cache.set(hash, asyncValue!));

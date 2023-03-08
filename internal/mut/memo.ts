@@ -1,7 +1,7 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import {
   Fetcher,
-  EzAsyncMemoMut as EzAsyncMemoMutType,
+  EzAsyncMemoMut as EzAsyncMemoMutInterface,
   Action,
   EmptyFetcherArgs,
   GKey,
@@ -12,9 +12,9 @@ export class EzAsyncMemoMut<
   Getter extends Fetcher,
   Hasher extends (...args: Parameters<Getter>) => any,
   A extends Record<GKey, Action<EmptyFetcherArgs<Getter>>>
-> implements EzAsyncMemoMutType<Getter, Hasher, A> {
-  public cache: EzAsyncMemoMutType<Getter, Hasher, A>["cache"] = new Map();
-  public current: EzAsyncMemoMutType<Getter, Hasher, A>["current"] = null;
+> implements EzAsyncMemoMutInterface<Getter, Hasher, A> {
+  public cache: EzAsyncMemoMutInterface<Getter, Hasher, A>["cache"] = new Map();
+  public current: EzAsyncMemoMutInterface<Getter, Hasher, A>["current"] = null;
   public fetch;
   public stale = () =>
     this.cache.forEach(({ ez }) => ez.stale());
