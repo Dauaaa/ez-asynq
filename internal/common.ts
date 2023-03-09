@@ -1,16 +1,25 @@
 import { observable, runInAction, when } from "mobx";
 import { AsyncAction as AsyncActionClass } from "./mut";
 
+/**
+ * A union type useful for represeting a javascript generic key.
+ */
 export type GKey = string | symbol | number;
-export type IFromClass<C> = Pick<C, keyof C>;
 
 /**
  * A function type that takes any number of arguments of type `P` and returns a promise of type `T`.
+ *
+ * If no argument is provided, it returns (...args: any[]) => Promise<any>;
  */
 export type Fetcher<T = any, P extends any[] = any[]> = (
   ...args: P
 ) => PromiseLike<T>;
 
+/**
+ * A function type that takes a fetcher as a generic argument and returns the fetcher with empty args.
+ *
+ * If no argument is provided, it returns () => Promise<any>
+ */
 export type EmptyFetcherArgs<Fe extends Fetcher = Fetcher> = Fetcher<
   RTA<Fe>,
   []
@@ -18,15 +27,17 @@ export type EmptyFetcherArgs<Fe extends Fetcher = Fetcher> = Fetcher<
 
 /**
  * Resolves to the awaited return type of `F`.
+ *
+ * Useful for getting the return value of a fetcher
  */
 export type RTA<F extends Fetcher> = Awaited<ReturnType<F>>;
 
 /**
- * Represents the state of an EzAsync instance. Can be one of the following:
- * - "uninitialized": The async value has not yet been fetched.
+ * Represents the state of an EzValue object. Can be one of the following:
+ * - "uninitialized": The async value has not yet been fetched. It implies value is null.
  * - "fetching": The async value is currently being fetched.
- * - "done": The async value has been successfully fetched and is up-to-date.
- * - "stale": The async value is out-of-date.
+ * - "done": The async value has been successfully fetched and is up-to-date. It implies value is not null.
+ * - "stale": The async value is out-of-date. It implies value is not null. A value may only be stale if it was once done.
  * - "error": An error occurred while fetching the async value.
  */
 export type EzAsyncState =
@@ -37,50 +48,99 @@ export type EzAsyncState =
   | "error";
 
 /**
- * An object type for the base ezAsync class. It's the core primitive of the library.
+ * Primitive type of the ezAsync library. It contains information about the value's state, some utility (stale)
+ * and the value itself which is nullable.
+ *
+ * When using this type, a developer should always check for the state of the value (instead of the value itself)
+ * to control flow.
+ */
+export type EzValue<Getter extends Fetcher<any, []> = Fetcher<any, []>> = (
+  | {
+    value: null;
+    state: { current: Extract<EzAsyncState, "uninitialized"> };
+  }
+  | {
+    value: RTA<Getter> | null;
+    state: { current: Extract<EzAsyncState, "fetching" | "error"> };
+  }
+  | {
+    value: RTA<Getter>;
+    state: { current: Extract<EzAsyncState, "done" | "stale"> };
+  }
+) & {
+  /**
+   * A method that can be used to manually mark the value as stale, which means it needs to be refetched.
+   * This method should only be called when the value is in the "done" state, as only then can it become "stale".
+   * It won't error otherwise, just won't change the value of state.
+   */
+  stale: () => void
+};
+
+/**
+ * Interface for the EzAsync class. It's defined by a generic argument Getter, which is an
+ * async function with empty arguments and a return value. The return value of the Getter
+ * is going to be cached in ez.value. In order to fetch the values, there are two methods available,
+ * fetch and forceFetch. Both of them are controlled by ez.state.
+ *
+ * If a Getter which has non empty arguments is needed, an alternative could be using
+ * EzAsyncMemo.
+ *
+ * @template Getter - The fetcher with empty arguments that retrieves the value for the EzValue instance.
  */
 export interface EzAsync<Getter extends Fetcher<any, []>> {
   /**
-   * A fetcher function that will fetch the async value.
+   * A fetcher function that will fetch the value.
    *
-   * A fetch function will not execute if the last (force)fetch called
-   * was called with the same parameters as the current and it's either done or still fetching.
+   * fetch will only execute the getter function and update ez.value
+   * if ez.state.current is not "done" or "fetching".
    */
   fetch: Fetcher<void, []>;
   /**
    * A fetcher function that will "force" the async value.
    *
-   * A force fetch will not execute if the last (force)fetch called
-   * was called with the same parameters as the current and it's still fetching.
+   * forceFetch will only execute the getter function and update ez.value
+   * if ez.state.current is not "fetching".
    */
   forceFetch: Fetcher<void, []>;
   /**
-   * A function that sets the state of the async value to "stale". This indicates that the next fetch should not use the cached value.
+   * The EzValue instance.
+   *
+   * ez should not be mutated by anything but fetch and forceFetch. If the need
+   * to mutate data exists, try using EzAsyncMut, where one may assign actions
+   * to mutate ez.
    */
   ez: EzValue<Getter>;
 }
 
-export type EzValue<Getter extends Fetcher<any, []> = Fetcher<any, []>> = (
-  | {
-      value: null;
-      state: { current: Extract<EzAsyncState, "uninitialized"> };
-    }
-  | {
-      value: RTA<Getter> | null;
-      state: { current: Extract<EzAsyncState, "fetching" | "error"> };
-    }
-  | {
-      value: RTA<Getter>;
-      state: { current: Extract<EzAsyncState, "done" | "stale"> };
-    }
-) & { stale: () => void };
-
+/**
+ * A type representing a mutable version of the EzValue type. It contains a fetch method that allows updating the value
+ * of the EzValue instance and an actions object that defines methods for executing functions and running effects to update
+ * ez depending on the response of the request. The EzAsyncMut instance should
+ * be used when the EzValue needs to be mutated by actions that update its value.
+ * 
+ * @template Getter - The fetcher with empty arguments that retrieves the value for the EzValue instance.
+ * @template A - An object that defines the actions for updating the value of the EzValue instance. The keys of this object
+ * correspond to the action names and the values are functions that take the current value of the EzValue instance and
+ * any additional arguments needed for updating the value.
+ */
 export interface EzAsyncMut<
   Getter extends EmptyFetcherArgs,
   A extends Record<GKey, Action<Getter>>
 > {
+  /**
+   * A function that fetches the value for the EzValue instance using the fetcher function provided in the
+   * generic argument. This function updates the state and value of the EzValue instance based on the fetcher function's result.
+   */
   fetch: () => Promise<void>;
+  /**
+   * The EzValue instance that is being mutated by the actions provided in the `actions` object.
+   */
   ez: EzValue<Getter>;
+  /**
+   * An object containing methods that update the value of the EzValue instance. The keys of this object
+   * correspond to the action names provided in the generic argument `A`, and the values are objects
+   * composed of a fetcher and effects to run before, after and on error in relation the given request.
+   */
   actions: ActionToAsyncAction<Getter, A>;
 }
 
@@ -91,28 +151,15 @@ export interface EzAsyncMemo<
   ) => string
 > {
   /**
-   * A Map containing memoization cache of Ez instances.
+   * A Map containing memoization cache of EzAsync instances.
    */
   cache: Map<ReturnType<Hasher>, EzAsync<EmptyFetcherArgs<Getter>>>;
   /**
-   * A reference to the currently (last) fetched value.
+   * A reference to the current (last) fetched value.
    */
   current: EzAsync<EmptyFetcherArgs<Getter>> | null;
-  /**
-   * Forces a fetch with the given arguments and updates the cache and the current reference.
-   *
-   * @param args - The arguments from the supplied fetcher.
-   */
   fetch: Fetcher<void, Parameters<Getter>>;
-  /**
-   * Fetches the value with the given arguments and updates the cache and the current reference.
-   *
-   * @param args - The arguments from the supplied fetcher.
-   */
   forceFetch: Fetcher<void, Parameters<Getter>>;
-  /**
-   * Sets all the memoization cache entries to be stale.
-   */
   stale: () => void;
 }
 
@@ -195,8 +242,8 @@ export type AsyncAction<
 
 export type ActionToAsyncAction<Getter extends Fetcher, A extends object> = {
   [Key in keyof A]: A[Key] extends Action<Getter>
-    ? AsyncAction<Getter, A[Key]>
-    : never;
+  ? AsyncAction<Getter, A[Key]>
+  : never;
 };
 
 /**
@@ -236,7 +283,7 @@ export type EzAsyncAny =
   | EzAsyncMemo<Fetcher, (...args: any[]) => any>
   | EzAsyncMut<EmptyFetcherArgs, Record<GKey, Action<EmptyFetcherArgs>>>
   | EzAsyncMemoMut<
-      Fetcher,
-      (...args: any[]) => any,
-      Record<GKey, Action<EmptyFetcherArgs>>
-    >;
+    Fetcher,
+    (...args: any[]) => any,
+    Record<GKey, Action<EmptyFetcherArgs>>
+  >;
