@@ -2,13 +2,6 @@ import { makeAutoObservable, runInAction } from "mobx";
 import { EzAsyncMemo as EzAsyncMemoInterface, Fetcher } from "./common";
 import { EzAsync } from "./base";
 
-/**
- * A utility class for memoizing the results of an asynchronous function call using `EzAsync`.
- * Maintains a memoization cache of `EzAsync` instances and a reference for the last fetched value.
- *
- * This class should be used to fetch values with different arguments that might be rerendered
- * multiple times during a user's session.
- */
 export class EzAsyncMemo<
   Fe extends Fetcher,
   Hasher extends (...args: Parameters<Fe>) => any = (
