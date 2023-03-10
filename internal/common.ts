@@ -63,21 +63,15 @@ export type EzValue<Getter extends Fetcher<any, []> = Fetcher<any, []>> = (
     /**
      * Represents the current state of `EzValue`.
      */
-    state: { current: Extract<EzAsyncState, "uninitialized"> };
+    state: Extract<EzAsyncState, "uninitialized">;
   }
   | {
-    /**
-     * Value of the `EzValue`. It's initialized as null and gets assigned by calling fetch.
-     */
     value: RTA<Getter> | null;
-    /**
-     * Represents the current state of `EzValue`.
-     */
-    state: { current: Extract<EzAsyncState, "fetching" | "error"> };
+    state: Extract<EzAsyncState, "fetching" | "error">;
   }
   | {
     value: RTA<Getter>;
-    state: { current: Extract<EzAsyncState, "done" | "stale"> };
+    state: Extract<EzAsyncState, "done" | "stale">;
   }
 ) & {
   /**

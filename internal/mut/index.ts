@@ -61,7 +61,7 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
     action: Action<Getter, Fe>
   ) {
     this.call = async (...args: Parameters<Fe>) => {
-      if (ez.state.current === "uninitialized") {
+      if (ez.state === "uninitialized") {
         console.error(
           "Actions should not be executed on uninitialized ez values!",
           ez,
@@ -77,9 +77,9 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
           runInAction(() => {
             if (action.preFetch) action.preFetch({ ez, args });
           });
-          await when(() => ez.state.current !== "fetching");
+          await when(() => ez.state !== "fetching");
 
-          if (ez.state.current !== "done") {
+          if (ez.state !== "done") {
             throw new Error(
               "ez value is stale or an error occured during fetching"
             );

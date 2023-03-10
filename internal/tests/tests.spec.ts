@@ -16,20 +16,20 @@ describe("EzAsyncBase", () => {
 
     const asyncValue = new EzAsync(() => fetcher(1));
 
-    expect(asyncValue.ez.state.current).toBe("uninitialized");
+    expect(asyncValue.ez.state).toBe("uninitialized");
 
     await asyncValue.fetch();
 
     expect(asyncValue.ez.value?.id).toBe(1);
     expect(asyncValue.ez.value?.name).toBe("John Doe");
-    expect(asyncValue.ez.state.current).toBe("done");
+    expect(asyncValue.ez.state).toBe("done");
 
     asyncValue.ez.stale();
-    expect(asyncValue.ez.state.current).toBe("stale");
+    expect(asyncValue.ez.state).toBe("stale");
 
     await asyncValue.fetch();
 
-    expect(asyncValue.ez.state.current).toBe("done");
+    expect(asyncValue.ez.state).toBe("done");
     expect(asyncValue.ez.value?.id).toBe(1);
   });
 
@@ -40,17 +40,17 @@ describe("EzAsyncBase", () => {
 
     const asyncValue = new EzAsync(() => fetcher(1));
 
-    expect(asyncValue.ez.state.current).toBe("uninitialized");
+    expect(asyncValue.ez.state).toBe("uninitialized");
 
     await asyncValue.fetch();
 
     expect(asyncValue.ez.value?.id).toBe(1);
     expect(asyncValue.ez.value?.name).toBe("John Doe");
-    expect(asyncValue.ez.state.current).toBe("done");
+    expect(asyncValue.ez.state).toBe("done");
 
     await asyncValue.fetch();
 
-    expect(asyncValue.ez.state.current).toBe("done");
+    expect(asyncValue.ez.state).toBe("done");
     expect(asyncValue.ez.value?.id).toBe(1);
   });
 
@@ -59,7 +59,7 @@ describe("EzAsyncBase", () => {
 
     const ezValue = new EzAsync(fetcher);
 
-    if (ezValue.ez.state.current === "uninitialized") {
+    if (ezValue.ez.state === "uninitialized") {
       ezValue.ez.value;
     }
   });
@@ -75,7 +75,7 @@ describe("EzAsyncBase", () => {
       await asyncValue.fetch();
     } catch (error) {
       expect((error as any).message).toBe("fetch error");
-      expect(asyncValue.ez.state.current).toBe("error");
+      expect(asyncValue.ez.state).toBe("error");
     }
   });
 });

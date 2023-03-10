@@ -9,12 +9,11 @@ export class EzAsync<Fe extends Fetcher<any, []>>
   public forceFetch;
 
   public constructor(fetcher: Fe) {
-    const state: { current: "uninitialized" } = { current: "uninitialized" };
     this.forceFetch = async () => {
-      if (this.ez.state.current === "fetching") return;
+      if (this.ez.state === "fetching") return;
 
       runInAction(() => {
-        this.ez.state.current = "fetching";
+        this.ez.state = "fetching";
       });
 
       try {
@@ -22,25 +21,25 @@ export class EzAsync<Fe extends Fetcher<any, []>>
 
         runInAction(() => {
           this.ez.value = value;
-          this.ez.state.current = "done";
+          this.ez.state = "done";
         });
       } catch (err) {
-        runInAction(() => (this.ez.state.current = "error"));
+        runInAction(() => (this.ez.state = "error"));
         throw err;
       }
     };
 
     this.fetch = async () => {
-      if (this.ez.state.current === "done") return;
+      if (this.ez.state === "done") return;
 
       await this.forceFetch();
     };
 
     const stale = () => {
-      if (this.ez.state.current === "done") this.ez.state.current = "stale";
+      if (this.ez.state === "done") this.ez.state = "stale";
     };
 
-    this.ez = { value: null, state, stale };
+    this.ez = { value: null, state: "uninitialized", stale };
 
     makeAutoObservable<EzAsync<Fe>, "state">(this);
   }
