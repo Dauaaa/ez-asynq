@@ -222,7 +222,32 @@ describe("Mut", () => {
 
       expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3", "4"]);
     });
+
+    it.concurrent("Actions without ordering", async () => {
+      const arr = new EzAsyncMut(async () => await fetcher("ab"), {
+        add: action,
+      }, { orderActions: false });
+
+      await arr.fetch();
+
+      void arr.actions.add("1", 300);
+      void arr.actions.add("2", 0);
+      void arr.actions.add("3", 0);
+      void arr.actions.add("4", 600);
+
+      expect(arr.ez.value).toStrictEqual(["ab"]);
+
+      await sleep(600);
+
+      // order for 2 and 3 is preserved since subtask for 2 is assigned first.
+      expect(arr.ez.value).toStrictEqual(["ab", "2", "3", "1"]);
+
+      await sleep(500);
+
+      expect(arr.ez.value).toStrictEqual(["ab", "2", "3", "1", "4"]);
+    })
   });
+
 
   describe("EzAsyncMemoMut", () => {
     it("Switches concurrent between fetches correctly", async () => {

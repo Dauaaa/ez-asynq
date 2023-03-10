@@ -9,6 +9,7 @@ import {
   GKey,
   EzAsyncMut as EzAsyncMutInterface,
   EzValue,
+  ActionsConfig,
 } from "../common";
 
 export class EzAsyncMut<
@@ -20,7 +21,7 @@ export class EzAsyncMut<
   public ez;
   public actions;
 
-  public constructor(fetcher: Getter, actions: A) {
+  public constructor(fetcher: Getter, actions: A, config?: Partial<ActionsConfig>) {
     const ezAsync = new EzAsync(fetcher);
     this.ez = ezAsync.ez;
     this.fetch = ezAsync.fetch;
@@ -28,7 +29,7 @@ export class EzAsyncMut<
     this.actions = Object.fromEntries(
       Object.entries(actions).map(([key, action]) => [
         key,
-        AsyncAction.new(orderedActionScheduler, this.ez, action),
+        new AsyncAction(orderedActionScheduler, this.ez, action, config).call,
       ])
     ) as unknown as ActionToAsyncAction<Getter, A>;
   }
@@ -55,11 +56,42 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
    * @param fetcher - The fetcher function to use with the async action
    * @param effect - The effect function to use with the async action
    */
-  private constructor(
+  public constructor(
     orderedActionScheduler: OrderedActionScheduler,
     ez: EzValue<Getter>,
-    action: Action<Getter, Fe>
+    action: Action<Getter, Fe>,
+    config?: Partial<ActionsConfig>,
   ) {
+    const actualConfig = { ...AsyncAction.defaultConfig, ...config };
+    const asyncAction = async (...args: Parameters<Fe>) => {
+      try {
+        if (action.preFetch)
+          runInAction(() => {
+            action.preFetch!({ ez, args });
+          });
+        await when(() => ez.state !== "fetching");
+
+        if (ez.state !== "done") {
+          throw new Error(
+            "ez value is stale or an error occured during fetching"
+          );
+        }
+
+        const result = await action.fetcher(...args);
+
+        runInAction(() => {
+          if (action.effect !== undefined)
+            action.effect({ ez, result, args });
+        });
+      } catch (error) {
+        runInAction(() => {
+          if (action.onFetchError !== undefined)
+            action.onFetchError({ ez, error, args });
+        });
+        throw error;
+      }
+    }
+
     this.call = async (...args: Parameters<Fe>) => {
       if (ez.state === "uninitialized") {
         console.error(
@@ -72,47 +104,15 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
         );
       }
 
-      await orderedActionScheduler.scheduleAction(async () => {
-        try {
-          runInAction(() => {
-            if (action.preFetch) action.preFetch({ ez, args });
-          });
-          await when(() => ez.state !== "fetching");
-
-          if (ez.state !== "done") {
-            throw new Error(
-              "ez value is stale or an error occured during fetching"
-            );
-          }
-
-          const result = await action.fetcher(...args);
-          runInAction(() => {
-            if (action.effect !== undefined)
-              action.effect({ ez, result, args });
-          });
-        } catch (error) {
-          runInAction(() => {
-            if (action.onFetchError !== undefined)
-              action.onFetchError({ ez, error, args });
-          });
-          throw error;
-        }
-      });
+      if (actualConfig.orderActions)
+        await orderedActionScheduler.scheduleAction(async () => await asyncAction(...args));
+      else {
+        await asyncAction(...args)
+      }
     };
 
     makeAutoObservable(this);
   }
 
-  public static new = <Getter extends Fetcher, Fe extends Fetcher>(
-    orderedActionScheduler: OrderedActionScheduler,
-    asyncValue: EzValue<Getter>,
-    action: Action<Getter, Fe>
-  ) => {
-    const asyncAction = new AsyncAction<
-      typeof asyncValue extends EzValue<infer G> ? G : never,
-      typeof action.fetcher
-    >(orderedActionScheduler, asyncValue, action);
-
-    return asyncAction.call;
-  };
+  private static defaultConfig = { orderActions: true };
 }

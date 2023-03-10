@@ -348,6 +348,10 @@ export class OrderedActionScheduler {
   private totalActions = observable.box(0);
 }
 
+export type ActionsConfig = {
+  orderActions: boolean,
+}
+
 export type EzAsyncAny =
   | EzAsync<EmptyFetcherArgs>
   | EzAsyncMemo<Fetcher, (...args: any[]) => any>
