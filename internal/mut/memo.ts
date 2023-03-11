@@ -3,28 +3,31 @@ import {
   Fetcher,
   EzAsynqMemoMut as EzAsynqMemoMutInterface,
   Action,
-  EmptyFetcherArgs,
+  EmptyArgsFetcher,
   GKey,
+  RTA,
 } from "../common";
 import { EzAsynqMut } from "../mut";
 
 export class EzAsynqMemoMut<
   Getter extends Fetcher,
   Hasher extends (...args: Parameters<Getter>) => any,
-  A extends Record<GKey, Action<EmptyFetcherArgs<Getter>>>
+  A extends Record<GKey, Action<EmptyArgsFetcher<RTA<Getter>>>>
 > implements EzAsynqMemoMutInterface<Getter, Hasher, A>
 {
   public cache: EzAsynqMemoMutInterface<Getter, Hasher, A>["cache"] = new Map();
   public current: EzAsynqMemoMutInterface<Getter, Hasher, A>["current"] = null;
   public fetch;
-  public stale = () => this.cache.forEach(({ ez }) => ez.stale());
+  public del = (...keys: ReturnType<Hasher>[]) => keys.length > 0 ? keys.map(key => this.cache.delete(key)) : this.cache.clear();
+  public stale = () => this.cache.forEach(({ stale }) => stale());
 
-  private constructor(fetcher: Getter, hasher: Hasher, actions: A) {
+  public constructor(fetcher: Getter, actions: A, hasher?: Hasher) {
+    this.hasher = hasher ?? ((...args: Parameters<Getter>) => JSON.stringify(args));
     this.fetch = async (...args: Parameters<Getter>) => {
-      const hash = hasher(...args);
+      const hash = this.hasher(...args);
       let asyncValue = this.cache.get(hash) ?? null;
       if (asyncValue === null) {
-        asyncValue = new EzAsynqMut<EmptyFetcherArgs<Getter>, A>(
+        asyncValue = new EzAsynqMut<EmptyArgsFetcher<RTA<Getter>>, A>(
           async () => await fetcher(...args),
           actions as A
         );
@@ -41,31 +44,13 @@ export class EzAsynqMemoMut<
 
   public static new = <
     Getter extends Fetcher,
-    A extends Record<GKey, Action<EmptyFetcherArgs<Getter>>>
-  >(
-    fetcher: Getter,
-    actions: A
-  ) => {
-    const asyncMemo = new EzAsynqMemoMut(
-      fetcher,
-      (...args: Parameters<Getter>) => JSON.stringify(args),
-      actions
-    );
-
-    return asyncMemo;
-  };
-
-  public static newHasher = <
-    Getter extends Fetcher,
     Hasher extends (...args: Parameters<Getter>) => any,
-    A extends Record<GKey, Action<EmptyFetcherArgs<Getter>>>
+    A extends Record<GKey, Action<EmptyArgsFetcher<RTA<Getter>>>>
   >(
     fetcher: Getter,
-    hasher: Hasher,
-    actions: A
-  ) => {
-    const asyncMemo = new EzAsynqMemoMut(fetcher, hasher, actions);
+    actions: A,
+    hasher?: Hasher,
+  ) => new EzAsynqMemoMut(fetcher, actions, hasher);
 
-    return asyncMemo;
-  };
+  private hasher;
 }

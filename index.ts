@@ -1,8 +1,16 @@
+import { EzAsynq } from "./internal/base";
+import { EzAsynqMemo } from "./internal/memo";
+import { EzAsynqMut } from "./internal/mut";
+import { EzAsynqMemoMut } from "./internal/mut/memo";
+
+export const ezAsynq = {
+  base: EzAsynq.new,
+  mut: EzAsynqMut.new,
+  memo: EzAsynqMemo.new,
+  memoMut: EzAsynqMemoMut.new,
+}
+
 export { arrayToMapFetcher } from "./internal/transforms";
-export { createAction, createMemoAction } from "./internal/mut/utils";
-export { EzAsynq } from "./internal/base";
-export { EzAsynqMemo } from "./internal/memo";
-export { EzAsynqMut } from "./internal/mut";
-export { EzAsynqMemoMut } from "./internal/mut/memo";
+export { createAAFactory } from "./internal/mut/utils";
 
 export type { EzValue, Action, EzAsynqState } from "./internal/common";

@@ -1,10 +1,15 @@
-import { observable, runInAction, when } from "mobx";
+import { makeAutoObservable, observable, runInAction, when } from "mobx";
 import { AsyncAction as AsyncActionClass } from "./mut";
 
 /**
- * A union type useful for represeting a javascript generic key.
+ * A type union useful for represeting a javascript generic key.
  */
 export type GKey = string | symbol | number;
+
+/**
+ * A type union of possible values that could be assigned to EzValue.value;
+ */
+export type GValue = object | Map<any, any> | Array<any> | Set<any> | string | number | symbol | bigint | boolean;
 
 /**
  * A function type that takes any number of arguments of type `P` and returns a promise of type `T`.
@@ -20,10 +25,7 @@ export type Fetcher<T = any, P extends any[] = any[]> = (
  *
  * If no argument is provided, it returns () => Promise<any>
  */
-export type EmptyFetcherArgs<Fe extends Fetcher = Fetcher> = Fetcher<
-  RTA<Fe>,
-  []
->;
+export type EmptyArgsFetcher<T extends any> = Fetcher<T, []>;
 
 /**
  * Resolves to the awaited return type of `F`.
@@ -47,40 +49,51 @@ export type EzAsynqState =
   | "stale"
   | "error";
 
+export type EzValueUninit = {
+  /**
+   * Value of the `EzValue`. It's initialized as null and gets assigned by calling fetch.
+   */
+  value: null;
+  /**
+   * Represents the current state of `EzValue`.
+   */
+  state: Extract<EzAsynqState, "uninitialized">;
+}
+
+export type EzValueFetching<Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>> = {
+  value: RTA<Getter> | null;
+  state: Extract<EzAsynqState, "fetching">;
+}
+
+export type EzValueError<Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>> = {
+  value: RTA<Getter> | null;
+  state: Extract<EzAsynqState, "error">;
+}
+
+export type EzValueDone<Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>> = {
+  value: RTA<Getter>;
+  state: Extract<EzAsynqState, "done">;
+}
+
+export type EzValueStale<Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>> = {
+  value: RTA<Getter>;
+  state: Extract<EzAsynqState, "stale">;
+}
+
+
 /**
- * Primitive type of the ezAsync library. It contains information about the value's state, some utility (stale)
- * and the value itself which is nullable.
+ * Primitive type of the ezAsync library. It contains information about the value's state and the
+ * value (which is nullable).
  *
  * When using this type, a developer should always check for the state of the value (instead of the value itself)
  * to control flow.
  */
-export type EzValue<Getter extends Fetcher<any, []> = Fetcher<any, []>> = (
-  | {
-      /**
-       * Value of the `EzValue`. It's initialized as null and gets assigned by calling fetch.
-       */
-      value: null;
-      /**
-       * Represents the current state of `EzValue`.
-       */
-      state: Extract<EzAsynqState, "uninitialized">;
-    }
-  | {
-      value: RTA<Getter> | null;
-      state: Extract<EzAsynqState, "fetching" | "error">;
-    }
-  | {
-      value: RTA<Getter>;
-      state: Extract<EzAsynqState, "done" | "stale">;
-    }
-) & {
-  /**
-   * A method that can be used to manually mark the value as stale, which means it needs to be refetched.
-   * This method should only be called when the value is in the "done" state, as only then can it become "stale".
-   * It won't error otherwise, just won't change the value of state.
-   */
-  stale: () => void;
-};
+export type EzValue<Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>> =
+  | EzValueUninit
+  | EzValueFetching<Getter>
+  | EzValueError<Getter>
+  | EzValueDone<Getter>
+  | EzValueStale<Getter>;
 
 /**
  * Interface for the EzAsynq class. It's defined by a generic argument Getter, which is an
@@ -93,7 +106,7 @@ export type EzValue<Getter extends Fetcher<any, []> = Fetcher<any, []>> = (
  *
  * @template Getter - The fetcher with empty arguments that retrieves the value for the EzValue instance.
  */
-export interface EzAsynq<Getter extends Fetcher<any, []>> {
+export interface EzAsynq<Getter extends Fetcher<GValue, []>> {
   /**
    * A fetcher function that will fetch the value.
    *
@@ -108,6 +121,12 @@ export interface EzAsynq<Getter extends Fetcher<any, []>> {
    * if ez.state.current is not "fetching".
    */
   forceFetch: Fetcher<void, []>;
+  /**
+   * A method that can be used to manually mark the value as stale, which means it needs to be refetched.
+   * This method should only be called when the value is in the "done" state, as only then can it become "stale".
+   * It won't error otherwise, just won't change the value of state.
+   */
+  stale: () => void;
   /**
    * The EzValue instance.
    *
@@ -130,7 +149,7 @@ export interface EzAsynq<Getter extends Fetcher<any, []>> {
  * any additional arguments needed for updating the value.
  */
 export interface EzAsynqMut<
-  Getter extends EmptyFetcherArgs,
+  Getter extends EmptyArgsFetcher<GValue>,
   A extends Record<GKey, Action<Getter>>
 > {
   /**
@@ -147,7 +166,13 @@ export interface EzAsynqMut<
    * correspond to the action names provided in the generic argument `A`, and the values are objects
    * composed of a fetcher and effects to run before, after and on error in relation the given request.
    */
-  actions: ActionToAsyncAction<Getter, A>;
+  actions: ActionToAsynqAction<Getter, A>;
+  /**
+   * Works like in EzAsync, it'll only set stale if state is "done". If a value is set as stale, acting
+   * on it might lead to bad behavior. Therefore, all queued actions will be canceled if a state is marked
+   * as "stale".
+   */
+  stale: () => void;
 }
 
 /**
@@ -170,7 +195,7 @@ export interface EzAsynqMut<
  * @default if no hasher is given, `EzAsynqMemo` will asign `JSON.stringify`.
  */
 export interface EzAsynqMemo<
-  Getter extends Fetcher = Fetcher,
+  Getter extends Fetcher<GValue>,
   Hasher extends (...args: Parameters<Getter>) => any = (
     ...args: Parameters<Getter>
   ) => string
@@ -178,11 +203,11 @@ export interface EzAsynqMemo<
   /**
    * A Map containing memoization cache of `EzAsynq` instances.
    */
-  cache: Map<ReturnType<Hasher>, EzAsynq<EmptyFetcherArgs<Getter>>>;
+  cache: Map<ReturnType<Hasher>, EzAsynq<EmptyArgsFetcher<RTA<Getter>>>>;
   /**
    * A reference to the current (last) fetched value.
    */
-  current: EzAsynq<EmptyFetcherArgs<Getter>> | null;
+  current: EzAsynq<EmptyArgsFetcher<RTA<Getter>>> | null;
   /**
    * A function that creates a new instance of `EzAsynq` with the following "Getter" `async () => await fetcher(...args)`.
    * This function signature complies with the `EzAsynq` "Getter" signature since it has no arguments. `hasher(args)` is
@@ -199,6 +224,12 @@ export interface EzAsynqMemo<
    * Marks all `EzAsynq` values in `cache` as stale.
    */
   stale: () => void;
+  /**
+   * Delete all entries with key specified in keys array. If no key specified, will clear cache.
+   *
+   * @param keys - array of keys of the entries to be deleted. If no key is passed, will clear cache.
+   */
+  del: (...keys: ReturnType<Hasher>[]) => void;
 }
 
 /**
@@ -218,18 +249,18 @@ export interface EzAsynqMemo<
  * @template A - which is an object that contains `Action` functions that are assigned to every cached instance of `EzAsynqMut`.
  */
 export interface EzAsynqMemoMut<
-  Getter extends Fetcher,
+  Getter extends Fetcher<GValue>,
   Hasher extends (...args: Parameters<Getter>) => any,
-  A extends Record<GKey, Action<Getter>>
+  A extends Record<GKey, Action<EmptyArgsFetcher<RTA<Getter>>>>,
 > {
   /**
    * A Map containing memoization cache of `EzAsynqMut` instances.
    */
-  cache: Map<ReturnType<Hasher>, EzAsynqMut<EmptyFetcherArgs<Getter>, A>>;
+  cache: Map<ReturnType<Hasher>, EzAsynqMut<EmptyArgsFetcher<RTA<Getter>>, A>>;
   /**
    * A reference to the current (last) fetched value.
    */
-  current: EzAsynqMut<EmptyFetcherArgs<Getter>, A> | null;
+  current: EzAsynqMut<EmptyArgsFetcher<RTA<Getter>>, A> | null;
   /**
    * A function that creates a new instance of `EzAsynqMut` with the following "Getter" `async () => await fetcher(...args)`.
    * This function signature complies with the `EzAsynqMut` "Getter" signature since it has no arguments. `hasher(args)` is
@@ -242,13 +273,19 @@ export interface EzAsynqMemoMut<
    * Marks all `EzAsynqMut` values in `cache` as stale.
    */
   stale: () => void;
+  /**
+   * Delete all entries with key specified in keys array. If no key specified, will clear cache.
+   *
+   * @param keys - array of keys of the entries to be deleted. If no key is passed, will clear cache.
+   */
+  del: (...keys: ReturnType<Hasher>[]) => void;
 }
 
 /**
  * A synchronous function that is called after a successful fetch and can be used to execute some side effect.
  */
 export type Effect<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
-  ez: EzValue<Getter>;
+  ez: EzValueDone<Getter>;
   result: RTA<Fe>;
   args: Parameters<Fe>;
 }) => void;
@@ -257,7 +294,7 @@ export type Effect<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
  * A  function that is called before a fetch and can be used to execute some side effect.
  */
 export type PreFetch<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
-  ez: EzValue<Getter>;
+  ez: EzValueDone<Getter>;
   args: Parameters<Fe>;
 }) => void;
 
@@ -265,7 +302,7 @@ export type PreFetch<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
  * An async function that is called after a failed fetch and can be used to handle the error.
  */
 export type OnFetchError<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
-  ez: EzValue<Getter>;
+  ez: EzValueDone<Getter>;
   args: Parameters<Fe>;
   error: unknown;
 }) => void;
@@ -276,7 +313,7 @@ export type OnFetchError<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
  * @typeparam Getter - The fetcher type of the EzAsynq instance being used to get the value that this action depends on.
  * @typeparam Fe - The fetcher type of the EzAsynq instance being used to fetch the value that this action modifies.
  */
-export type Action<Getter extends Fetcher, Fe extends Fetcher = Fetcher> = {
+export type Action<Getter extends EmptyArgsFetcher<GValue>, Fe extends Fetcher = Fetcher> = {
   /**
    * The fetcher function that will be used to signal (a server, for example) about the action.
    */
@@ -306,14 +343,14 @@ export type Action<Getter extends Fetcher, Fe extends Fetcher = Fetcher> = {
 };
 
 export type AsyncAction<
-  Getter extends EmptyFetcherArgs,
+  Getter extends EmptyArgsFetcher<GValue>,
   A extends Action<Getter>
 > = AsyncActionClass<Getter, A["fetcher"]>["call"];
 
-export type ActionToAsyncAction<Getter extends Fetcher, A extends object> = {
+export type ActionToAsynqAction<Getter extends Fetcher, A extends object> = {
   [Key in keyof A]: A[Key] extends Action<Getter>
-    ? AsyncAction<Getter, A[Key]>
-    : never;
+  ? AsyncAction<Getter, A[Key]>
+  : never;
 };
 
 /**
@@ -325,16 +362,26 @@ export class OrderedActionScheduler {
    */
   public scheduleAction = async (action: () => Promise<void>) => {
     const currentAction = this.totalActions.get();
+    const currentEpoch = this.currentEpoch.get();
     runInAction(() => this.totalActions.set(currentAction + 1));
     try {
-      await when(() => currentAction === this.currentAction.get());
-      await action();
+      await when(() => currentAction === this.currentAction.get() || currentEpoch !== this.currentEpoch.get());
+      if (currentEpoch === this.currentEpoch.get())
+        await action();
       runInAction(() => this.currentAction.set(currentAction + 1));
     } catch (err) {
       runInAction(() => this.currentAction.set(currentAction + 1));
       throw err;
     }
   };
+
+  constructor() {
+    makeAutoObservable<OrderedActionScheduler, "flushActions">(this);
+  }
+  /**
+   * Flush all actions in progress.
+   */
+  public flushActions = () => this.currentEpoch.set(this.currentEpoch.get() + 1);
 
   /**
    * An observable box that keeps track of the current action number.
@@ -346,18 +393,12 @@ export class OrderedActionScheduler {
    * It will increment every time a new action is scheduled.
    */
   private totalActions = observable.box(0);
+  private currentEpoch = observable.box(0);
 }
 
+/**
+ * Config for AsyncActions
+ */
 export type ActionsConfig = {
   orderActions: boolean;
 };
-
-export type EzAsynqAny =
-  | EzAsynq<EmptyFetcherArgs>
-  | EzAsynqMemo<Fetcher, (...args: any[]) => any>
-  | EzAsynqMut<EmptyFetcherArgs, Record<GKey, Action<EmptyFetcherArgs>>>
-  | EzAsynqMemoMut<
-      Fetcher,
-      (...args: any[]) => any,
-      Record<GKey, Action<EmptyFetcherArgs>>
-    >;

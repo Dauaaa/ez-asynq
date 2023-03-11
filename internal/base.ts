@@ -1,11 +1,12 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { Fetcher, EzAsynq as EzAsynqInterface, EzValue } from "./common";
 
-export class EzAsynq<Fe extends Fetcher<any, []>>
+export class EzAsynq<Fe extends Fetcher>
   implements EzAsynqInterface<Fe>
 {
   public ez: EzValue<Fe>;
   public fetch;
+  public stale;
   public forceFetch;
 
   public constructor(fetcher: Fe) {
@@ -35,12 +36,14 @@ export class EzAsynq<Fe extends Fetcher<any, []>>
       await this.forceFetch();
     };
 
-    const stale = () => {
-      if (this.ez.state === "done") this.ez.state = "stale";
+    this.stale = () => {
+      if (this.ez.state === "done") (this.ez.state as unknown) = "stale";
     };
 
-    this.ez = { value: null, state: "uninitialized", stale };
+    this.ez = { value: null, state: "uninitialized" };
 
     makeAutoObservable<EzAsynq<Fe>, "state">(this);
   }
+
+  public static new = <Fe extends Fetcher>(fetcher: Fe) => new EzAsynq(fetcher);
 }

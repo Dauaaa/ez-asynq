@@ -1,25 +1,29 @@
-import { makeAutoObservable, runInAction, when } from "mobx";
+import { autorun, makeAutoObservable, runInAction, when } from "mobx";
 import { EzAsynq } from "../base";
 import {
   Fetcher,
   Action,
-  EmptyFetcherArgs,
+  EmptyArgsFetcher,
   OrderedActionScheduler,
-  ActionToAsyncAction,
+  ActionToAsynqAction,
   GKey,
   EzAsynqMut as EzAsynqMutInterface,
   EzValue,
   ActionsConfig,
+  GValue,
 } from "../common";
 
 export class EzAsynqMut<
-  Getter extends EmptyFetcherArgs,
-  A extends Record<GKey, Action<Getter>>
+  Getter extends EmptyArgsFetcher<GValue>,
+  A extends Record<GKey, Action<Getter>>,
 > implements EzAsynqMutInterface<Getter, A>
 {
   public fetch;
   public ez;
   public actions;
+  public stale = () => {
+    if (this.ez.state === "done") (this.ez.state as unknown) = "stale";
+  }
 
   public constructor(
     fetcher: Getter,
@@ -35,8 +39,25 @@ export class EzAsynqMut<
         key,
         new AsyncAction(orderedActionScheduler, this.ez, action, config).call,
       ])
-    ) as unknown as ActionToAsyncAction<Getter, A>;
+    ) as unknown as ActionToAsynqAction<Getter, A>;
+
+    // Flush actions if state is marked as stale. No need to dispose since all
+    // observables will be dropped when class is GC-ed.
+    autorun(() => {
+      if (this.ez.state === "stale") runInAction(() => orderedActionScheduler.flushActions());
+    });
+
+    makeAutoObservable(this);
   }
+
+  public static new = <
+    Getter extends EmptyArgsFetcher<GValue>,
+    A extends Record<GKey, Action<Getter>>,
+  >(
+    fetcher: Getter,
+    actions: A,
+    config?: Partial<ActionsConfig>
+  ) => new EzAsynqMut(fetcher, actions, config);
 }
 
 /**
@@ -69,25 +90,27 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
     const actualConfig = { ...AsyncAction.defaultConfig, ...config };
     const asyncAction = async (...args: Parameters<Fe>) => {
       try {
-        runInAction(() => {
-          if (action.preFetch) action.preFetch({ ez, args });
-        });
         await when(() => ez.state !== "fetching");
-
         if (ez.state !== "done") {
           throw new Error(
             "ez value is stale or an error occured during fetching"
           );
         }
 
+        runInAction(() => {
+          if (action.preFetch) action.preFetch({ ez, args });
+        });
+
         const result = await action.fetcher(...args);
 
         runInAction(() => {
-          if (action.effect !== undefined) action.effect({ ez, result, args });
+          // have to check again if it's done, since could become stale while waiting for fetcher
+          if (action.effect !== undefined && ez.state === "done")
+            action.effect({ ez, result, args });
         });
       } catch (error) {
         runInAction(() => {
-          if (action.onFetchError !== undefined)
+          if (action.onFetchError !== undefined && ez.state === "done")
             action.onFetchError({ ez, error, args });
         });
         throw error;

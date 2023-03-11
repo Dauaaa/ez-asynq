@@ -11,27 +11,26 @@ export class EzAsynqMemo<
 {
   public cache: EzAsynqMemoInterface<Fe, Hasher>["cache"] = new Map();
   public current: EzAsynqMemoInterface<Fe, Hasher>["current"] = null;
+  public del = (...keys: ReturnType<Hasher>[]) => keys.length > 0 ? keys.map(key => this.cache.delete(key)) : this.cache.clear();
   public fetch = async (...args: Parameters<Fe>) => {
     await this.fetchGeneric("fetch", ...args);
   };
   public forceFetch = async (...args: Parameters<Fe>) => {
     await this.fetchGeneric("forceFetch", ...args);
   };
-  public stale = () => this.cache.forEach(({ ez }) => ez.stale());
-  /**
-   * The constructor of the class.
-   *
-   * @param fetcher The function to fetch values with.
-   */
+  public stale = () => this.cache.forEach(({ stale }) => stale());
   public constructor(fetcher: Fe, hasher?: Hasher) {
     this.fetcher = fetcher;
     this.hasher = hasher ?? ((...args: Parameters<Fe>) => JSON.stringify(args));
     makeAutoObservable(this);
   }
 
-  /**
-   * The function to fetch values with.
-   */
+  public static new = <Fe extends Fetcher,
+    Hasher extends (...args: Parameters<Fe>) => any = (
+      ...args: Parameters<Fe>
+    ) => string
+  >(fetcher: Fe, hasher?: Hasher) => new EzAsynqMemo(fetcher, hasher);
+
   private fetcher;
 
   private hasher;

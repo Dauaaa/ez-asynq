@@ -1,9 +1,9 @@
 import { EzAsynq } from "../base";
 import { EzAsynqMut } from "../mut";
 import { EzAsynqMemo } from "../memo";
-import { Action, EmptyFetcherArgs } from "../common";
 import { EzAsynqMemoMut } from "../mut/memo";
 import { describe, it, expect, vitest, beforeEach } from "vitest";
+import { createAAFactory } from "../mut/utils";
 
 const sleep = async (time: number) =>
   await new Promise((resolve) => setTimeout(resolve, time));
@@ -24,7 +24,7 @@ describe("EzAsynqBase", () => {
     expect(asyncValue.ez.value?.name).toBe("John Doe");
     expect(asyncValue.ez.state).toBe("done");
 
-    asyncValue.ez.stale();
+    asyncValue.stale();
     expect(asyncValue.ez.state).toBe("stale");
 
     await asyncValue.fetch();
@@ -99,22 +99,6 @@ describe("AsyncMemo", () => {
     memo.cache.get(2);
   });
 
-  it.concurrent("EzAsynqMemo: stale", async () => {
-    const asyncFn = async (arg: number) => {
-      return Promise.resolve(arg * 2);
-    };
-
-    const memo = new EzAsynqMemo(asyncFn);
-
-    await memo.fetch(2);
-    expect(memo.current?.ez.value).toBe(4);
-
-    memo.stale();
-
-    await memo.fetch(3);
-    expect(memo.current?.ez.value).toBe(6);
-  });
-
   it.concurrent("EzAsynqMemo: memoization", async () => {
     let callCount = 0;
     const asyncFn = async (arg: number) => {
@@ -167,26 +151,17 @@ describe("AsyncMemo", () => {
 });
 
 describe("Mut", () => {
-  const fetcher = vitest.fn(async (str: string) => Promise.resolve([str]));
-  const actionFetcher = vitest.fn(async (a: string, time: number) => {
+  const fetcher = async (str: string) => Promise.resolve([str]);
+  const actionFetcher = async (a: string, time: number) => {
     await sleep(time);
     return Promise.resolve(a);
+  };
+  const actionFactory = createAAFactory<string[]>();
+  const action = actionFactory(actionFetcher, {
+    effect: vitest.fn(({ ez, result }) => {
+      ez.value?.push(result);
+    })
   });
-  const action: Action<() => Promise<string[]>, typeof actionFetcher> = {
-    fetcher: actionFetcher,
-    effect: vitest.fn(({ ez, result }) => {
-      ez.value?.push(result);
-    }),
-  };
-  const memoAction: Action<
-    EmptyFetcherArgs<typeof fetcher>,
-    typeof actionFetcher
-  > = {
-    fetcher: actionFetcher,
-    effect: vitest.fn(({ ez, result }) => {
-      ez.value?.push(result);
-    }),
-  };
 
   beforeEach(() => void vitest.clearAllMocks());
   describe("EzAsynqMut", () => {
@@ -204,6 +179,61 @@ describe("Mut", () => {
       const arr = new EzAsynqMut(async () => await fetcher("ab"), {
         add: action,
       });
+
+      await arr.fetch();
+
+      void arr.actions.add("1", 300);
+      void arr.actions.add("2", 1);
+      void arr.actions.add("3", 1);
+      void arr.actions.add("4", 600);
+
+      expect(arr.ez.value).toStrictEqual(["ab"]);
+
+      await sleep(600);
+
+      expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3"]);
+
+      await sleep(500);
+
+      expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3", "4"]);
+    });
+
+    it.concurrent("Action actions should be flushed when state is set to stale", async () => {
+      const arr = new EzAsynqMut(async () => await fetcher("ab"), {
+        add: action,
+      });
+
+      await arr.fetch();
+
+      void arr.actions.add("1", 300);
+      void arr.actions.add("2", 1);
+      void arr.actions.add("3", 1);
+      void arr.actions.add("4", 600);
+
+      arr.stale();
+
+      expect(arr.ez.value).toStrictEqual(["ab"]);
+
+      await sleep(1100);
+
+      expect(arr.ez.value).toStrictEqual(["ab"]);
+    });
+
+    it.concurrent("New actions should work after flushing and refetching", async () => {
+      const arr = new EzAsynqMut(async () => await fetcher("ab"), {
+        add: action,
+      });
+
+      await arr.fetch();
+
+      void arr.actions.add("1", 300);
+      void arr.actions.add("2", 1);
+      void arr.actions.add("3", 1);
+      void arr.actions.add("4", 600);
+
+      arr.stale();
+
+      expect(arr.ez.value).toStrictEqual(["ab"]);
 
       await arr.fetch();
 
@@ -254,7 +284,7 @@ describe("Mut", () => {
 
   describe("EzAsynqMemoMut", () => {
     it("Switches concurrent between fetches correctly", async () => {
-      const memo = EzAsynqMemoMut.new(fetcher, { addStr: memoAction });
+      const memo = EzAsynqMemoMut.new(fetcher, { addStr: action });
 
       await memo.fetch("first");
       expect(memo.current?.ez.value).toStrictEqual(["first"]);
@@ -267,7 +297,7 @@ describe("Mut", () => {
     });
 
     it("Updates state with actions", async () => {
-      const memo = EzAsynqMemoMut.new(fetcher, { addStr: memoAction });
+      const memo = EzAsynqMemoMut.new(fetcher, { addStr: action });
 
       await memo.fetch("first");
       expect(memo.current?.ez.value).toStrictEqual(["first"]);
@@ -287,7 +317,7 @@ describe("Mut", () => {
       return await Promise.resolve(n + 2);
     };
 
-    const memo = EzAsynqMemoMut.newHasher(getter, (n: number) => n, {});
+    const memo = EzAsynqMemoMut.new(getter, {}, (n: number) => n);
 
     await memo.fetch(1);
     await memo.fetch(2);
