@@ -1,21 +1,21 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import {
   Fetcher,
-  EzAsyncMemoMut as EzAsyncMemoMutInterface,
+  EzAsynqMemoMut as EzAsynqMemoMutInterface,
   Action,
   EmptyFetcherArgs,
   GKey,
 } from "../common";
-import { EzAsyncMut } from "../mut";
+import { EzAsynqMut } from "../mut";
 
-export class EzAsyncMemoMut<
+export class EzAsynqMemoMut<
   Getter extends Fetcher,
   Hasher extends (...args: Parameters<Getter>) => any,
   A extends Record<GKey, Action<EmptyFetcherArgs<Getter>>>
-> implements EzAsyncMemoMutInterface<Getter, Hasher, A>
+> implements EzAsynqMemoMutInterface<Getter, Hasher, A>
 {
-  public cache: EzAsyncMemoMutInterface<Getter, Hasher, A>["cache"] = new Map();
-  public current: EzAsyncMemoMutInterface<Getter, Hasher, A>["current"] = null;
+  public cache: EzAsynqMemoMutInterface<Getter, Hasher, A>["cache"] = new Map();
+  public current: EzAsynqMemoMutInterface<Getter, Hasher, A>["current"] = null;
   public fetch;
   public stale = () => this.cache.forEach(({ ez }) => ez.stale());
 
@@ -24,7 +24,7 @@ export class EzAsyncMemoMut<
       const hash = hasher(...args);
       let asyncValue = this.cache.get(hash) ?? null;
       if (asyncValue === null) {
-        asyncValue = new EzAsyncMut<EmptyFetcherArgs<Getter>, A>(
+        asyncValue = new EzAsynqMut<EmptyFetcherArgs<Getter>, A>(
           async () => await fetcher(...args),
           actions as A
         );
@@ -46,7 +46,7 @@ export class EzAsyncMemoMut<
     fetcher: Getter,
     actions: A
   ) => {
-    const asyncMemo = new EzAsyncMemoMut(
+    const asyncMemo = new EzAsynqMemoMut(
       fetcher,
       (...args: Parameters<Getter>) => JSON.stringify(args),
       actions
@@ -64,7 +64,7 @@ export class EzAsyncMemoMut<
     hasher: Hasher,
     actions: A
   ) => {
-    const asyncMemo = new EzAsyncMemoMut(fetcher, hasher, actions);
+    const asyncMemo = new EzAsynqMemoMut(fetcher, hasher, actions);
 
     return asyncMemo;
   };

@@ -52,7 +52,7 @@ export const arrayToMapFetcher =
     fetcher: F;
     key: K;
   }) =>
-  async (...args: Parameters<typeof fetcher>) => {
-    const value = await fetcher(...args);
-    return new Map<T[K], T>(value.map((value) => [value[key], value]));
-  };
+    async (...args: Parameters<typeof fetcher>) => {
+      const value = await fetcher(...args);
+      return new Map<T[K], T>(value.map((value) => [value[key], value]));
+    };

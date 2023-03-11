@@ -1,5 +1,5 @@
 import { makeAutoObservable, runInAction, when } from "mobx";
-import { EzAsync } from "../base";
+import { EzAsynq } from "../base";
 import {
   Fetcher,
   Action,
@@ -7,22 +7,22 @@ import {
   OrderedActionScheduler,
   ActionToAsyncAction,
   GKey,
-  EzAsyncMut as EzAsyncMutInterface,
+  EzAsynqMut as EzAsynqMutInterface,
   EzValue,
   ActionsConfig,
 } from "../common";
 
-export class EzAsyncMut<
+export class EzAsynqMut<
   Getter extends EmptyFetcherArgs,
   A extends Record<GKey, Action<Getter>>
-> implements EzAsyncMutInterface<Getter, A>
+> implements EzAsynqMutInterface<Getter, A>
 {
   public fetch;
   public ez;
   public actions;
 
   public constructor(fetcher: Getter, actions: A, config?: Partial<ActionsConfig>) {
-    const ezAsync = new EzAsync(fetcher);
+    const ezAsync = new EzAsynq(fetcher);
     this.ez = ezAsync.ez;
     this.fetch = ezAsync.fetch;
     const orderedActionScheduler = new OrderedActionScheduler();
@@ -36,7 +36,7 @@ export class EzAsyncMut<
 }
 
 /**
- * This class is used to attach an async action to an EzAsyncMut instance.
+ * This class is used to attach an async action to an EzAsynqMut instance.
  * It will be called after the value has been fetched and can be used to update other values or perform additional async operations.
  *
  * The effect function will be called with an object containing the current value, the new result, and the arguments passed to the fetcher.
@@ -45,14 +45,14 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
   /**
    * A function that wraps the original fetcher function, and executes it while
    * triggering an effect on success. The effect is responsible for updating the
-   * value in the parent EzAsync instance.
+   * value in the parent EzAsynq instance.
    */
   public call;
 
   /**
    * The private constructor for the AsyncAction class.
    *
-   * @param asyncValue - The EzAsyncMut instance to attach the async action to
+   * @param asyncValue - The EzAsynqMut instance to attach the async action to
    * @param fetcher - The fetcher function to use with the async action
    * @param effect - The effect function to use with the async action
    */

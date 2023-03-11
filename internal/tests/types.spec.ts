@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars,@typescript-eslint/no-empty-function */
 import { it } from "vitest";
-import { Fetcher, EzAsync, EzValue } from "../common";
+import { Fetcher, EzAsynq, EzValue } from "../common";
 
 it("empty", () => { });
 
@@ -16,16 +16,16 @@ type Fe1 = Fetcher<string, [string, number, object]>;
 type Fe2 = Fetcher<string, []>;
 
 // @ts-expect-error testing
-type ShouldInferEzAsyncType_1 = EzAsync<Fe1>;
-type ShouldInferEzAsyncType_2 = EzAsync<Fe2>;
-type ShouldInferEzAsyncType_3 = Expect<
-  Equal<EzAsync<Fe2>["fetch"], Fetcher<void, []>>
+type ShouldInferEzAsynqType_1 = EzAsynq<Fe1>;
+type ShouldInferEzAsynqType_2 = EzAsynq<Fe2>;
+type ShouldInferEzAsynqType_3 = Expect<
+  Equal<EzAsynq<Fe2>["fetch"], Fetcher<void, []>>
 >;
-type ShouldInferEzAsyncType_4 = Expect<
-  Equal<EzAsync<Fe2>["forceFetch"], Fetcher<void, []>>
+type ShouldInferEzAsynqType_4 = Expect<
+  Equal<EzAsynq<Fe2>["forceFetch"], Fetcher<void, []>>
 >;
-type ShouldInferEzAsyncType_5 = Expect<
-  Equal<EzAsync<Fe2>["ez"]["stale"], () => void>
+type ShouldInferEzAsynqType_5 = Expect<
+  Equal<EzAsynq<Fe2>["ez"]["stale"], () => void>
 >;
 
 // @ts-expect-error testing

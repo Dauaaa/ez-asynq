@@ -1,16 +1,16 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import { EzAsyncMemo as EzAsyncMemoInterface, Fetcher } from "./common";
-import { EzAsync } from "./base";
+import { EzAsynqMemo as EzAsynqMemoInterface, Fetcher } from "./common";
+import { EzAsynq } from "./base";
 
-export class EzAsyncMemo<
+export class EzAsynqMemo<
   Fe extends Fetcher,
   Hasher extends (...args: Parameters<Fe>) => any = (
     ...args: Parameters<Fe>
   ) => string
-> implements EzAsyncMemoInterface<Fe, Hasher>
+> implements EzAsynqMemoInterface<Fe, Hasher>
 {
-  public cache: EzAsyncMemoInterface<Fe, Hasher>["cache"] = new Map();
-  public current: EzAsyncMemoInterface<Fe, Hasher>["current"] = null;
+  public cache: EzAsynqMemoInterface<Fe, Hasher>["cache"] = new Map();
+  public current: EzAsynqMemoInterface<Fe, Hasher>["current"] = null;
   public fetch = async (...args: Parameters<Fe>) => {
     await this.fetchGeneric("fetch", ...args);
   };
@@ -43,7 +43,7 @@ export class EzAsyncMemo<
     const hash = this.hasher(...args);
     let asyncValue = this.cache.get(hash) ?? null;
     if (asyncValue === null) {
-      asyncValue = new EzAsync(async () => await this.fetcher(...args));
+      asyncValue = new EzAsynq(async () => await this.fetcher(...args));
       // SAFETY: variable was just assign a value.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       runInAction(() => this.cache.set(hash, asyncValue!));
