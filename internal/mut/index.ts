@@ -15,7 +15,7 @@ import {
 
 export class EzAsynqMut<
   Getter extends EmptyArgsFetcher<GValue>,
-  A extends Record<GKey, Action<Getter>>,
+  A extends Record<GKey, Action<Getter>>
 > implements EzAsynqMutInterface<Getter, A>
 {
   public fetch;
@@ -23,7 +23,7 @@ export class EzAsynqMut<
   public actions;
   public stale = () => {
     if (this.ez.state === "done") (this.ez.state as unknown) = "stale";
-  }
+  };
 
   public constructor(
     fetcher: Getter,
@@ -44,7 +44,8 @@ export class EzAsynqMut<
     // Flush actions if state is marked as stale. No need to dispose since all
     // observables will be dropped when class is GC-ed.
     autorun(() => {
-      if (this.ez.state === "stale") runInAction(() => orderedActionScheduler.flushActions());
+      if (this.ez.state === "stale")
+        runInAction(() => orderedActionScheduler.flushActions());
     });
 
     makeAutoObservable(this);
@@ -52,7 +53,7 @@ export class EzAsynqMut<
 
   public static new = <
     Getter extends EmptyArgsFetcher<GValue>,
-    A extends Record<GKey, Action<Getter>>,
+    A extends Record<GKey, Action<Getter>>
   >(
     fetcher: Getter,
     actions: A,

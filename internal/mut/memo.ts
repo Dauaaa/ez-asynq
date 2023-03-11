@@ -18,11 +18,15 @@ export class EzAsynqMemoMut<
   public cache: EzAsynqMemoMutInterface<Getter, Hasher, A>["cache"] = new Map();
   public current: EzAsynqMemoMutInterface<Getter, Hasher, A>["current"] = null;
   public fetch;
-  public del = (...keys: ReturnType<Hasher>[]) => keys.length > 0 ? keys.map(key => this.cache.delete(key)) : this.cache.clear();
+  public del = (...keys: ReturnType<Hasher>[]) =>
+    keys.length > 0
+      ? keys.map((key) => this.cache.delete(key))
+      : this.cache.clear();
   public stale = () => this.cache.forEach(({ stale }) => stale());
 
   public constructor(fetcher: Getter, actions: A, hasher?: Hasher) {
-    this.hasher = hasher ?? ((...args: Parameters<Getter>) => JSON.stringify(args));
+    this.hasher =
+      hasher ?? ((...args: Parameters<Getter>) => JSON.stringify(args));
     this.fetch = async (...args: Parameters<Getter>) => {
       const hash = this.hasher(...args);
       let asyncValue = this.cache.get(hash) ?? null;
@@ -49,7 +53,7 @@ export class EzAsynqMemoMut<
   >(
     fetcher: Getter,
     actions: A,
-    hasher?: Hasher,
+    hasher?: Hasher
   ) => new EzAsynqMemoMut(fetcher, actions, hasher);
 
   private hasher;

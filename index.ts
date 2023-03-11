@@ -8,7 +8,7 @@ export const ezAsynq = {
   mut: EzAsynqMut.new,
   memo: EzAsynqMemo.new,
   memoMut: EzAsynqMemoMut.new,
-}
+};
 
 export { arrayToMapFetcher } from "./internal/transforms";
 export { createAAFactory } from "./internal/mut/utils";

@@ -2,7 +2,7 @@
 import { it } from "vitest";
 import { Fetcher, EzAsynq, EzValue } from "../common";
 
-it("empty", () => { });
+it("empty", () => {});
 
 // from type-challenges/type-challenges
 type Expect<T extends true> = T;

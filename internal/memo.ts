@@ -11,7 +11,10 @@ export class EzAsynqMemo<
 {
   public cache: EzAsynqMemoInterface<Fe, Hasher>["cache"] = new Map();
   public current: EzAsynqMemoInterface<Fe, Hasher>["current"] = null;
-  public del = (...keys: ReturnType<Hasher>[]) => keys.length > 0 ? keys.map(key => this.cache.delete(key)) : this.cache.clear();
+  public del = (...keys: ReturnType<Hasher>[]) =>
+    keys.length > 0
+      ? keys.map((key) => this.cache.delete(key))
+      : this.cache.clear();
   public fetch = async (...args: Parameters<Fe>) => {
     await this.fetchGeneric("fetch", ...args);
   };
@@ -25,11 +28,15 @@ export class EzAsynqMemo<
     makeAutoObservable(this);
   }
 
-  public static new = <Fe extends Fetcher,
+  public static new = <
+    Fe extends Fetcher,
     Hasher extends (...args: Parameters<Fe>) => any = (
       ...args: Parameters<Fe>
     ) => string
-  >(fetcher: Fe, hasher?: Hasher) => new EzAsynqMemo(fetcher, hasher);
+  >(
+    fetcher: Fe,
+    hasher?: Hasher
+  ) => new EzAsynqMemo(fetcher, hasher);
 
   private fetcher;
 

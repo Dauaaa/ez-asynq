@@ -9,7 +9,16 @@ export type GKey = string | symbol | number;
 /**
  * A type union of possible values that could be assigned to EzValue.value;
  */
-export type GValue = object | Map<any, any> | Array<any> | Set<any> | string | number | symbol | bigint | boolean;
+export type GValue =
+  | object
+  | Map<any, any>
+  | Array<any>
+  | Set<any>
+  | string
+  | number
+  | symbol
+  | bigint
+  | boolean;
 
 /**
  * A function type that takes any number of arguments of type `P` and returns a promise of type `T`.
@@ -25,7 +34,7 @@ export type Fetcher<T = any, P extends any[] = any[]> = (
  *
  * If no argument is provided, it returns () => Promise<any>
  */
-export type EmptyArgsFetcher<T extends any> = Fetcher<T, []>;
+export type EmptyArgsFetcher<T> = Fetcher<T, []>;
 
 /**
  * Resolves to the awaited return type of `F`.
@@ -58,28 +67,35 @@ export type EzValueUninit = {
    * Represents the current state of `EzValue`.
    */
   state: Extract<EzAsynqState, "uninitialized">;
-}
+};
 
-export type EzValueFetching<Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>> = {
+export type EzValueFetching<
+  Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>
+> = {
   value: RTA<Getter> | null;
   state: Extract<EzAsynqState, "fetching">;
-}
+};
 
-export type EzValueError<Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>> = {
+export type EzValueError<
+  Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>
+> = {
   value: RTA<Getter> | null;
   state: Extract<EzAsynqState, "error">;
-}
+};
 
-export type EzValueDone<Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>> = {
+export type EzValueDone<
+  Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>
+> = {
   value: RTA<Getter>;
   state: Extract<EzAsynqState, "done">;
-}
+};
 
-export type EzValueStale<Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>> = {
+export type EzValueStale<
+  Getter extends Fetcher<GValue, []> = Fetcher<GValue, []>
+> = {
   value: RTA<Getter>;
   state: Extract<EzAsynqState, "stale">;
-}
-
+};
 
 /**
  * Primitive type of the ezAsync library. It contains information about the value's state and the
@@ -251,7 +267,7 @@ export interface EzAsynqMemo<
 export interface EzAsynqMemoMut<
   Getter extends Fetcher<GValue>,
   Hasher extends (...args: Parameters<Getter>) => any,
-  A extends Record<GKey, Action<EmptyArgsFetcher<RTA<Getter>>>>,
+  A extends Record<GKey, Action<EmptyArgsFetcher<RTA<Getter>>>>
 > {
   /**
    * A Map containing memoization cache of `EzAsynqMut` instances.
@@ -313,7 +329,10 @@ export type OnFetchError<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
  * @typeparam Getter - The fetcher type of the EzAsynq instance being used to get the value that this action depends on.
  * @typeparam Fe - The fetcher type of the EzAsynq instance being used to fetch the value that this action modifies.
  */
-export type Action<Getter extends EmptyArgsFetcher<GValue>, Fe extends Fetcher = Fetcher> = {
+export type Action<
+  Getter extends EmptyArgsFetcher<GValue>,
+  Fe extends Fetcher = Fetcher
+> = {
   /**
    * The fetcher function that will be used to signal (a server, for example) about the action.
    */
@@ -349,8 +368,8 @@ export type AsyncAction<
 
 export type ActionToAsynqAction<Getter extends Fetcher, A extends object> = {
   [Key in keyof A]: A[Key] extends Action<Getter>
-  ? AsyncAction<Getter, A[Key]>
-  : never;
+    ? AsyncAction<Getter, A[Key]>
+    : never;
 };
 
 /**
@@ -365,9 +384,12 @@ export class OrderedActionScheduler {
     const currentEpoch = this.currentEpoch.get();
     runInAction(() => this.totalActions.set(currentAction + 1));
     try {
-      await when(() => currentAction === this.currentAction.get() || currentEpoch !== this.currentEpoch.get());
-      if (currentEpoch === this.currentEpoch.get())
-        await action();
+      await when(
+        () =>
+          currentAction === this.currentAction.get() ||
+          currentEpoch !== this.currentEpoch.get()
+      );
+      if (currentEpoch === this.currentEpoch.get()) await action();
       runInAction(() => this.currentAction.set(currentAction + 1));
     } catch (err) {
       runInAction(() => this.currentAction.set(currentAction + 1));
@@ -381,7 +403,8 @@ export class OrderedActionScheduler {
   /**
    * Flush all actions in progress.
    */
-  public flushActions = () => this.currentEpoch.set(this.currentEpoch.get() + 1);
+  public flushActions = () =>
+    this.currentEpoch.set(this.currentEpoch.get() + 1);
 
   /**
    * An observable box that keeps track of the current action number.

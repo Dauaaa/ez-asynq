@@ -30,26 +30,47 @@ import {
  * );
  * ```
  */
-export const createAAFactory = <
-  GetterOrValue extends EmptyArgsFetcher<GValue> | GValue,
->(
-  _getter?: GetterOrValue,
-) => <Fe extends Fetcher>(
-  fetcher: Fe,
-  {
-    effect,
-    preFetch,
-    onFetchError,
-  }: {
-    effect?: Effect<GetterOrValue extends EmptyArgsFetcher<GValue> ? GetterOrValue : EmptyArgsFetcher<GetterOrValue>, Fe>;
-    preFetch?: PreFetch<GetterOrValue extends EmptyArgsFetcher<GValue> ? GetterOrValue : EmptyArgsFetcher<GetterOrValue>, Fe>;
-    onFetchError?: OnFetchError<GetterOrValue extends EmptyArgsFetcher<GValue> ? GetterOrValue : EmptyArgsFetcher<GetterOrValue>, Fe>;
-  }
-) => {
+export const createAAFactory =
+  <GetterOrValue extends EmptyArgsFetcher<GValue> | GValue>(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _getter?: GetterOrValue
+  ) =>
+  <Fe extends Fetcher>(
+    fetcher: Fe,
+    {
+      effect,
+      preFetch,
+      onFetchError,
+    }: {
+      effect?: Effect<
+        GetterOrValue extends EmptyArgsFetcher<GValue>
+          ? GetterOrValue
+          : EmptyArgsFetcher<GetterOrValue>,
+        Fe
+      >;
+      preFetch?: PreFetch<
+        GetterOrValue extends EmptyArgsFetcher<GValue>
+          ? GetterOrValue
+          : EmptyArgsFetcher<GetterOrValue>,
+        Fe
+      >;
+      onFetchError?: OnFetchError<
+        GetterOrValue extends EmptyArgsFetcher<GValue>
+          ? GetterOrValue
+          : EmptyArgsFetcher<GetterOrValue>,
+        Fe
+      >;
+    }
+  ) => {
     return {
       fetcher,
       effect,
       preFetch,
       onFetchError,
-    } satisfies Action<GetterOrValue extends EmptyArgsFetcher<GValue> ? GetterOrValue : EmptyArgsFetcher<GetterOrValue>, Fe>;
+    } satisfies Action<
+      GetterOrValue extends EmptyArgsFetcher<GValue>
+        ? GetterOrValue
+        : EmptyArgsFetcher<GetterOrValue>,
+      Fe
+    >;
   };

@@ -160,7 +160,7 @@ describe("Mut", () => {
   const action = actionFactory(actionFetcher, {
     effect: vitest.fn(({ ez, result }) => {
       ez.value?.push(result);
-    })
+    }),
   });
 
   beforeEach(() => void vitest.clearAllMocks());
@@ -198,60 +198,66 @@ describe("Mut", () => {
       expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3", "4"]);
     });
 
-    it.concurrent("Action actions should be flushed when state is set to stale", async () => {
-      const arr = new EzAsynqMut(async () => await fetcher("ab"), {
-        add: action,
-      });
+    it.concurrent(
+      "Action actions should be flushed when state is set to stale",
+      async () => {
+        const arr = new EzAsynqMut(async () => await fetcher("ab"), {
+          add: action,
+        });
 
-      await arr.fetch();
+        await arr.fetch();
 
-      void arr.actions.add("1", 300);
-      void arr.actions.add("2", 1);
-      void arr.actions.add("3", 1);
-      void arr.actions.add("4", 600);
+        void arr.actions.add("1", 300);
+        void arr.actions.add("2", 1);
+        void arr.actions.add("3", 1);
+        void arr.actions.add("4", 600);
 
-      arr.stale();
+        arr.stale();
 
-      expect(arr.ez.value).toStrictEqual(["ab"]);
+        expect(arr.ez.value).toStrictEqual(["ab"]);
 
-      await sleep(1100);
+        await sleep(1100);
 
-      expect(arr.ez.value).toStrictEqual(["ab"]);
-    });
+        expect(arr.ez.value).toStrictEqual(["ab"]);
+      }
+    );
 
-    it.concurrent("New actions should work after flushing and refetching", async () => {
-      const arr = new EzAsynqMut(async () => await fetcher("ab"), {
-        add: action,
-      });
+    it.concurrent(
+      "New actions should work after flushing and refetching",
+      async () => {
+        const arr = new EzAsynqMut(async () => await fetcher("ab"), {
+          add: action,
+        });
 
-      await arr.fetch();
+        await arr.fetch();
 
-      void arr.actions.add("1", 300);
-      void arr.actions.add("2", 1);
-      void arr.actions.add("3", 1);
-      void arr.actions.add("4", 600);
+        void arr.actions.add("1", 300);
+        void arr.actions.add("2", 1);
+        void arr.actions.add("3", 1);
+        void arr.actions.add("4", 600);
 
-      arr.stale();
+        arr.stale();
 
-      expect(arr.ez.value).toStrictEqual(["ab"]);
+        expect(arr.ez.value).toStrictEqual(["ab"]);
 
-      await arr.fetch();
+        await arr.fetch();
 
-      void arr.actions.add("1", 300);
-      void arr.actions.add("2", 1);
-      void arr.actions.add("3", 1);
-      void arr.actions.add("4", 600);
+        void arr.actions.add("1", 300);
+        void arr.actions.add("2", 1);
+        void arr.actions.add("3", 1);
+        void arr.actions.add("4", 600);
 
-      expect(arr.ez.value).toStrictEqual(["ab"]);
+        expect(arr.ez.value).toStrictEqual(["ab"]);
 
-      await sleep(600);
+        await sleep(600);
 
-      expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3"]);
+        expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3"]);
 
-      await sleep(500);
+        await sleep(500);
 
-      expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3", "4"]);
-    });
+        expect(arr.ez.value).toStrictEqual(["ab", "1", "2", "3", "4"]);
+      }
+    );
 
     it.concurrent("Actions without ordering", async () => {
       const arr = new EzAsynqMut(
