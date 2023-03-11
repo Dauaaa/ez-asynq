@@ -224,9 +224,13 @@ describe("Mut", () => {
     });
 
     it.concurrent("Actions without ordering", async () => {
-      const arr = new EzAsynqMut(async () => await fetcher("ab"), {
-        add: action,
-      }, { orderActions: false });
+      const arr = new EzAsynqMut(
+        async () => await fetcher("ab"),
+        {
+          add: action,
+        },
+        { orderActions: false }
+      );
 
       await arr.fetch();
 
@@ -245,9 +249,8 @@ describe("Mut", () => {
       await sleep(500);
 
       expect(arr.ez.value).toStrictEqual(["ab", "2", "3", "1", "4"]);
-    })
+    });
   });
-
 
   describe("EzAsynqMemoMut", () => {
     it("Switches concurrent between fetches correctly", async () => {

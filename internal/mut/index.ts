@@ -21,7 +21,11 @@ export class EzAsynqMut<
   public ez;
   public actions;
 
-  public constructor(fetcher: Getter, actions: A, config?: Partial<ActionsConfig>) {
+  public constructor(
+    fetcher: Getter,
+    actions: A,
+    config?: Partial<ActionsConfig>
+  ) {
     const ezAsync = new EzAsynq(fetcher);
     this.ez = ezAsync.ez;
     this.fetch = ezAsync.fetch;
@@ -60,7 +64,7 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
     orderedActionScheduler: OrderedActionScheduler,
     ez: EzValue<Getter>,
     action: Action<Getter, Fe>,
-    config?: Partial<ActionsConfig>,
+    config?: Partial<ActionsConfig>
   ) {
     const actualConfig = { ...AsyncAction.defaultConfig, ...config };
     const asyncAction = async (...args: Parameters<Fe>) => {
@@ -80,8 +84,7 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
         const result = await action.fetcher(...args);
 
         runInAction(() => {
-          if (action.effect !== undefined)
-            action.effect({ ez, result, args });
+          if (action.effect !== undefined) action.effect({ ez, result, args });
         });
       } catch (error) {
         runInAction(() => {
@@ -90,7 +93,7 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
         });
         throw error;
       }
-    }
+    };
 
     this.call = async (...args: Parameters<Fe>) => {
       if (ez.state === "uninitialized") {
@@ -105,9 +108,11 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
       }
 
       if (actualConfig.orderActions)
-        await orderedActionScheduler.scheduleAction(async () => await asyncAction(...args));
+        await orderedActionScheduler.scheduleAction(
+          async () => await asyncAction(...args)
+        );
       else {
-        await asyncAction(...args)
+        await asyncAction(...args);
       }
     };
 

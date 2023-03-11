@@ -56,30 +56,30 @@ export type EzAsynqState =
  */
 export type EzValue<Getter extends Fetcher<any, []> = Fetcher<any, []>> = (
   | {
-    /**
-     * Value of the `EzValue`. It's initialized as null and gets assigned by calling fetch.
-     */
-    value: null;
-    /**
-     * Represents the current state of `EzValue`.
-     */
-    state: Extract<EzAsynqState, "uninitialized">;
-  }
+      /**
+       * Value of the `EzValue`. It's initialized as null and gets assigned by calling fetch.
+       */
+      value: null;
+      /**
+       * Represents the current state of `EzValue`.
+       */
+      state: Extract<EzAsynqState, "uninitialized">;
+    }
   | {
-    value: RTA<Getter> | null;
-    state: Extract<EzAsynqState, "fetching" | "error">;
-  }
+      value: RTA<Getter> | null;
+      state: Extract<EzAsynqState, "fetching" | "error">;
+    }
   | {
-    value: RTA<Getter>;
-    state: Extract<EzAsynqState, "done" | "stale">;
-  }
+      value: RTA<Getter>;
+      state: Extract<EzAsynqState, "done" | "stale">;
+    }
 ) & {
   /**
    * A method that can be used to manually mark the value as stale, which means it needs to be refetched.
    * This method should only be called when the value is in the "done" state, as only then can it become "stale".
    * It won't error otherwise, just won't change the value of state.
    */
-  stale: () => void
+  stale: () => void;
 };
 
 /**
@@ -123,7 +123,7 @@ export interface EzAsynq<Getter extends Fetcher<any, []>> {
  * of the EzValue instance and an actions object that defines methods for executing functions and running effects to update
  * ez depending on the response of the request. The EzAsynqMut instance should
  * be used when the EzValue needs to be mutated by actions that update its value.
- * 
+ *
  * @template Getter - The fetcher with empty arguments that retrieves the value for the EzValue instance.
  * @template A - An object that defines the actions for updating the value of the EzValue instance. The keys of this object
  * correspond to the action names and the values are functions that take the current value of the EzValue instance and
@@ -184,7 +184,7 @@ export interface EzAsynqMemo<
    */
   current: EzAsynq<EmptyFetcherArgs<Getter>> | null;
   /**
-   * A function that creates a new instance of `EzAsynq` with the following "Getter" `async () => await fetcher(...args)`. 
+   * A function that creates a new instance of `EzAsynq` with the following "Getter" `async () => await fetcher(...args)`.
    * This function signature complies with the `EzAsynq` "Getter" signature since it has no arguments. `hasher(args)` is
    * the key stored in cache. After creating a new instance, the `EzAsynqMemo.fetch` function will assign the instance to
    * current and call `EzAsynq.fetch` on the instance. If the instance for a given key already exists, `EzAsynqMemo.fetch`
@@ -231,7 +231,7 @@ export interface EzAsynqMemoMut<
    */
   current: EzAsynqMut<EmptyFetcherArgs<Getter>, A> | null;
   /**
-   * A function that creates a new instance of `EzAsynqMut` with the following "Getter" `async () => await fetcher(...args)`. 
+   * A function that creates a new instance of `EzAsynqMut` with the following "Getter" `async () => await fetcher(...args)`.
    * This function signature complies with the `EzAsynqMut` "Getter" signature since it has no arguments. `hasher(args)` is
    * the key stored in cache. After creating a new instance, the `EzAsynqMemoMut.fetch` function will assign the instance to
    * current and call `EzAsynqMut.fetch` on the instance. If the instance for a given key already exists, `EzAsynqMemoMut.fetch`
@@ -312,8 +312,8 @@ export type AsyncAction<
 
 export type ActionToAsyncAction<Getter extends Fetcher, A extends object> = {
   [Key in keyof A]: A[Key] extends Action<Getter>
-  ? AsyncAction<Getter, A[Key]>
-  : never;
+    ? AsyncAction<Getter, A[Key]>
+    : never;
 };
 
 /**
@@ -349,15 +349,15 @@ export class OrderedActionScheduler {
 }
 
 export type ActionsConfig = {
-  orderActions: boolean,
-}
+  orderActions: boolean;
+};
 
 export type EzAsynqAny =
   | EzAsynq<EmptyFetcherArgs>
   | EzAsynqMemo<Fetcher, (...args: any[]) => any>
   | EzAsynqMut<EmptyFetcherArgs, Record<GKey, Action<EmptyFetcherArgs>>>
   | EzAsynqMemoMut<
-    Fetcher,
-    (...args: any[]) => any,
-    Record<GKey, Action<EmptyFetcherArgs>>
-  >;
+      Fetcher,
+      (...args: any[]) => any,
+      Record<GKey, Action<EmptyFetcherArgs>>
+    >;
