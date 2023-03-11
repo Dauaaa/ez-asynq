@@ -2,6 +2,8 @@
   "compilerOptions": {
     "target": "ESNext",
     "useDefineForClassFields": true,
+    "declaration": true,
+    "outDir": "./dist",
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": false,
@@ -12,7 +14,15 @@
     "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx"
-  }
+    "jsx": "react-jsx",
+    "paths": {
+      "ez-asynq": [
+        "./index.ts"
+      ]
+    }
+  },
+  "include": [
+    "./internal/**/*.ts",
+    "./index.ts"
+  ]
 }

@@ -4,7 +4,7 @@ A domain driven async kit for typescript, powered by mobx.
 ### TODOs
 
 - [ ] TODO write a proper README 😓
-- [ ] TODO deploy package
+- [x] TODO deploy package (properly)
 - [x] TODO fix all stale docstrings!
 - [x] TODO create a discriminated union that does not allow status to be "done" and value to be null so developer only needs to check status instead of status and value.
 - [ ] TODO create EzRange (should be good use case for pagination, implements EzAsynqMemo) (after 1.0.0)
