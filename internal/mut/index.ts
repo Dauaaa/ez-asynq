@@ -69,10 +69,9 @@ export class AsyncAction<Getter extends Fetcher, Fe extends Fetcher> {
     const actualConfig = { ...AsyncAction.defaultConfig, ...config };
     const asyncAction = async (...args: Parameters<Fe>) => {
       try {
-        if (action.preFetch)
-          runInAction(() => {
-            action.preFetch!({ ez, args });
-          });
+        runInAction(() => {
+          if (action.preFetch) action.preFetch({ ez, args });
+        });
         await when(() => ez.state !== "fetching");
 
         if (ez.state !== "done") {
