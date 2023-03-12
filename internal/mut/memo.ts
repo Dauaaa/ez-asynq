@@ -6,13 +6,14 @@ import {
   EmptyArgsFetcher,
   GKey,
   RTA,
+  RTOfValues,
 } from "../common";
 import { EzAsynqMut } from "../mut";
 
 export class EzAsynqMemoMut<
   Getter extends Fetcher,
   Hasher extends (...args: Parameters<Getter>) => any,
-  A extends Record<GKey, Action<EmptyArgsFetcher<RTA<Getter>>>>
+  A extends Record<GKey, (...arg: Parameters<Getter>) => Action<EmptyArgsFetcher<RTA<Getter>>>>,
 > implements EzAsynqMemoMutInterface<Getter, Hasher, A>
 {
   public cache: EzAsynqMemoMutInterface<Getter, Hasher, A>["cache"] = new Map();
@@ -31,9 +32,9 @@ export class EzAsynqMemoMut<
       const hash = this.hasher(...args);
       let asyncValue = this.cache.get(hash) ?? null;
       if (asyncValue === null) {
-        asyncValue = new EzAsynqMut<EmptyArgsFetcher<RTA<Getter>>, A>(
+        asyncValue = new EzAsynqMut<EmptyArgsFetcher<RTA<Getter>>, RTOfValues<A>>(
           async () => await fetcher(...args),
-          actions as A
+          Object.fromEntries(Object.entries(actions).map(([key, action]) => [key, action(...args)])) as RTOfValues<A>
         );
         // SAFETY: variable was just assign a value.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -49,7 +50,7 @@ export class EzAsynqMemoMut<
   public static new = <
     Getter extends Fetcher,
     Hasher extends (...args: Parameters<Getter>) => any,
-    A extends Record<GKey, Action<EmptyArgsFetcher<RTA<Getter>>>>
+    A extends Record<GKey, (...arg: Parameters<Getter>) => Action<EmptyArgsFetcher<RTA<Getter>>>>,
   >(
     fetcher: Getter,
     actions: A,

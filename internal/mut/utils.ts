@@ -6,6 +6,7 @@ import {
   PreFetch,
   OnFetchError,
   GValue,
+  RTA,
 } from "../common";
 
 /**
@@ -31,46 +32,75 @@ import {
  * ```
  */
 export const createAAFactory =
-  <GetterOrValue extends EmptyArgsFetcher<GValue> | GValue>(
+  <Getter extends EmptyArgsFetcher<GValue>>(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _getter?: GetterOrValue
+    _getter?: Getter
   ) =>
-  <Fe extends Fetcher>(
-    fetcher: Fe,
-    {
-      effect,
-      preFetch,
-      onFetchError,
-    }: {
-      effect?: Effect<
-        GetterOrValue extends EmptyArgsFetcher<GValue>
-          ? GetterOrValue
-          : EmptyArgsFetcher<GetterOrValue>,
+    <Fe extends Fetcher>(
+      fetcher: Fe,
+      {
+        effect,
+        preFetch,
+        onFetchError,
+      }: {
+        effect?: Effect<
+          Getter,
+          Fe
+        >;
+        preFetch?: PreFetch<
+          Getter,
+          Fe
+        >;
+        onFetchError?: OnFetchError<
+          Getter,
+          Fe
+        >;
+      }
+    ) => {
+      return {
+        fetcher,
+        effect,
+        preFetch,
+        onFetchError,
+      } satisfies Action<
+        Getter,
         Fe
       >;
-      preFetch?: PreFetch<
-        GetterOrValue extends EmptyArgsFetcher<GValue>
-          ? GetterOrValue
-          : EmptyArgsFetcher<GetterOrValue>,
+    };
+
+export const createAAMemoFactory =
+  <Getter extends Fetcher<GValue>>(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _getter?: Getter,
+  ) =>
+    <Fe extends Fetcher>(
+      fetcher: (...args: Parameters<Getter>) => Fe,
+      {
+        effect,
+        preFetch,
+        onFetchError,
+      }: {
+        effect?: (...args: Parameters<Getter>) => Effect<
+          EmptyArgsFetcher<RTA<Getter>>,
+          Fe
+        >;
+        preFetch?: (...args: Parameters<Getter>) => PreFetch<
+          EmptyArgsFetcher<RTA<Getter>>,
+          Fe
+        >;
+        onFetchError?: (...args: Parameters<Getter>) => OnFetchError<
+          EmptyArgsFetcher<RTA<Getter>>,
+          Fe
+        >;
+      }
+    ) => (...args: Parameters<Getter>) => {
+      return {
+        fetcher: fetcher(...args),
+        effect: effect ? effect(...args) : undefined,
+        preFetch: preFetch ? preFetch(...args) : undefined,
+        onFetchError: onFetchError ? onFetchError(...args) : undefined,
+      } satisfies Action<
+        EmptyArgsFetcher<RTA<Getter>>,
         Fe
       >;
-      onFetchError?: OnFetchError<
-        GetterOrValue extends EmptyArgsFetcher<GValue>
-          ? GetterOrValue
-          : EmptyArgsFetcher<GetterOrValue>,
-        Fe
-      >;
-    }
-  ) => {
-    return {
-      fetcher,
-      effect,
-      preFetch,
-      onFetchError,
-    } satisfies Action<
-      GetterOrValue extends EmptyArgsFetcher<GValue>
-        ? GetterOrValue
-        : EmptyArgsFetcher<GetterOrValue>,
-      Fe
-    >;
-  };
+    };

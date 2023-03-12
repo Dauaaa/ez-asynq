@@ -3,7 +3,7 @@ import { EzAsynqMut } from "../mut";
 import { EzAsynqMemo } from "../memo";
 import { EzAsynqMemoMut } from "../mut/memo";
 import { describe, it, expect, vitest, beforeEach } from "vitest";
-import { createAAFactory } from "../mut/utils";
+import { createAAFactory, createAAMemoFactory } from "../mut/utils";
 
 const sleep = async (time: number) =>
   await new Promise((resolve) => setTimeout(resolve, time));
@@ -156,12 +156,18 @@ describe("Mut", () => {
     await sleep(time);
     return Promise.resolve(a);
   };
-  const actionFactory = createAAFactory<string[]>();
+  const actionFactory = createAAFactory<() => ReturnType<typeof fetcher>>();
   const action = actionFactory(actionFetcher, {
     effect: vitest.fn(({ ez, result }) => {
       ez.value?.push(result);
     }),
   });
+  const memoActionFactory = createAAMemoFactory(fetcher);
+  const memoAction = memoActionFactory((...args) => actionFetcher, {
+    effect: (...args) => vitest.fn(({ ez, result }) => {
+      ez.value?.push(result);
+    })
+  })
 
   beforeEach(() => void vitest.clearAllMocks());
   describe("EzAsynqMut", () => {
@@ -290,7 +296,7 @@ describe("Mut", () => {
 
   describe("EzAsynqMemoMut", () => {
     it("Switches concurrent between fetches correctly", async () => {
-      const memo = EzAsynqMemoMut.new(fetcher, { addStr: action });
+      const memo = EzAsynqMemoMut.new(fetcher, { addStr: memoAction });
 
       await memo.fetch("first");
       expect(memo.current?.ez.value).toStrictEqual(["first"]);
@@ -303,7 +309,7 @@ describe("Mut", () => {
     });
 
     it("Updates state with actions", async () => {
-      const memo = EzAsynqMemoMut.new(fetcher, { addStr: action });
+      const memo = EzAsynqMemoMut.new(fetcher, { addStr: memoAction });
 
       await memo.fetch("first");
       expect(memo.current?.ez.value).toStrictEqual(["first"]);
