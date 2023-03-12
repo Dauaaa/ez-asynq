@@ -48,7 +48,7 @@ const fetchBTCPrice = async () => await getCoinPriceAnalysis("BTC");
 
 import { ezAsynq } from "ez-asynq";
 
-const btcPrice = ezAsynq.base(fetchBitcoinPrice);
+const btcPrice = ezAsynq.base(fetchBTCPrice);
 ```
 
 #### EzAsynqMemo
@@ -59,7 +59,7 @@ const fetchCoinPrice = async (coin: "BTC" | "ETH" | "ADA") => await getCoinPrice
 
 import { ezAsynq } from "ez-asynq";
 
-const coinPrices = ezAsynq.memo(fetchBitcoinPrice);
+const coinPrices = ezAsynq.memo(fetchCoinPrice);
 ```
 
 #### EzAsynqMut
@@ -75,7 +75,7 @@ import { ezAsynq, createAAFactory } from "ez-asynq";
 
 const btcPriceActionFactory = createAAFactory(fetchBTCPriceChart);
 
-const appendBTCPriceAction = coinPriceActionFactory(async () => getCoinPrice("BTC"), { effect: ({ ez, result }) => ez.value.push(result); });
+const appendBTCPriceAction = btcPriceActionFactory(async () => getCoinPrice("BTC"), { effect: ({ ez, result }) => ez.value.push(result) });
 
 const btcPrice = ezAsynq.mut(fetchBTCPriceChart, { appendCurrentPrice: appendBTCPriceAction});
 
@@ -98,11 +98,11 @@ const fetchCoinPriceChart = async (coin: Coin) => {
 
 import { ezAsynq, createAAFactory } from "ez-asynq";
 
-const btcPriceActionFactory = createAAFactory(fetchBTCPriceChart);
+const coinPriceActionFactory = createAAMemoFactory(fetchCoinPriceChart);
 
-const appendCoinPriceAction = coinPriceActionFactory((coin) => async () => getCoinPrice(coin), { effect: (_coin) => ({ ez, result }) => ez.value.push(result); });
+const appendCoinPriceAction = coinPriceActionFactory((coin) => async () => getCoinPrice(coin), { effect: (_coin) => ({ ez, result }) => ez.value.push(result) });
 
-const coinPrice = ezAsynq.mut(fetchCoinPriceChart, { appendCurrentPrice: appendCoinPriceAction});
+const coinPrice = ezAsynq.memoMut(fetchCoinPriceChart, { appendCurrentPrice: appendCoinPriceAction});
 
 await coinPrice.fetch("BTC");
 
