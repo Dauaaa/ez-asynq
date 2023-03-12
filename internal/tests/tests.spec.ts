@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { EzAsynq } from "../base";
 import { EzAsynqMut } from "../mut";
 import { EzAsynqMemo } from "../memo";
@@ -164,10 +166,11 @@ describe("Mut", () => {
   });
   const memoActionFactory = createAAMemoFactory(fetcher);
   const memoAction = memoActionFactory((...args) => actionFetcher, {
-    effect: (...args) => vitest.fn(({ ez, result }) => {
-      ez.value?.push(result);
-    })
-  })
+    effect: (...args) =>
+      vitest.fn(({ ez, result }) => {
+        ez.value?.push(result);
+      }),
+  });
 
   beforeEach(() => void vitest.clearAllMocks());
   describe("EzAsynqMut", () => {

@@ -267,12 +267,18 @@ export interface EzAsynqMemo<
 export interface EzAsynqMemoMut<
   Getter extends Fetcher<GValue>,
   Hasher extends (...args: Parameters<Getter>) => any,
-  A extends Record<GKey, (...arg: Parameters<Getter>) => Action<EmptyArgsFetcher<RTA<Getter>>>>,
+  A extends Record<
+    GKey,
+    (...arg: Parameters<Getter>) => Action<EmptyArgsFetcher<RTA<Getter>>>
+  >
 > {
   /**
    * A Map containing memoization cache of `EzAsynqMut` instances.
    */
-  cache: Map<ReturnType<Hasher>, EzAsynqMut<EmptyArgsFetcher<RTA<Getter>>, RTOfValues<A>>>;
+  cache: Map<
+    ReturnType<Hasher>,
+    EzAsynqMut<EmptyArgsFetcher<RTA<Getter>>, RTOfValues<A>>
+  >;
   /**
    * A reference to the current (last) fetched value.
    */
@@ -299,7 +305,7 @@ export interface EzAsynqMemoMut<
 
 export type RTOfValues<T extends Record<GKey, (...args: any) => any>> = {
   [K in keyof T]: ReturnType<T[K]>;
-}
+};
 
 /**
  * A synchronous function that is called after a successful fetch and can be used to execute some side effect.
@@ -309,7 +315,13 @@ export type Effect<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
   result: RTA<Fe>;
   args: Parameters<Fe>;
 }) => void;
-export type MemoEffect<Getter extends Fetcher, Fe extends Fetcher, Hasher extends (...args: Parameters<Getter>) => any> = (arg1: Parameters<Effect<Getter, Fe>>[0] & { hasher: ReturnType<Hasher> }) => void;
+export type MemoEffect<
+  Getter extends Fetcher,
+  Fe extends Fetcher,
+  Hasher extends (...args: Parameters<Getter>) => any
+> = (
+  arg1: Parameters<Effect<Getter, Fe>>[0] & { hasher: ReturnType<Hasher> }
+) => void;
 
 /**
  * A  function that is called before a fetch and can be used to execute some side effect.
@@ -318,7 +330,13 @@ export type PreFetch<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
   ez: EzValueDone<Getter>;
   args: Parameters<Fe>;
 }) => void;
-export type MemoPreFetch<Getter extends Fetcher, Fe extends Fetcher, Hasher extends (...args: Parameters<Getter>) => any> = (arg1: Parameters<PreFetch<Getter, Fe>>[0] & { hasher: ReturnType<Hasher> }) => void;
+export type MemoPreFetch<
+  Getter extends Fetcher,
+  Fe extends Fetcher,
+  Hasher extends (...args: Parameters<Getter>) => any
+> = (
+  arg1: Parameters<PreFetch<Getter, Fe>>[0] & { hasher: ReturnType<Hasher> }
+) => void;
 
 /**
  * An async function that is called after a failed fetch and can be used to handle the error.
@@ -328,7 +346,13 @@ export type OnFetchError<Getter extends Fetcher, Fe extends Fetcher> = (arg1: {
   args: Parameters<Fe>;
   error: unknown;
 }) => void;
-export type MemoOnFetchError<Getter extends Fetcher, Fe extends Fetcher, Hasher extends (...args: Parameters<Getter>) => any> = (arg1: Parameters<PreFetch<Getter, Fe>>[0] & { hasher: ReturnType<Hasher> }) => void;
+export type MemoOnFetchError<
+  Getter extends Fetcher,
+  Fe extends Fetcher,
+  Hasher extends (...args: Parameters<Getter>) => any
+> = (
+  arg1: Parameters<PreFetch<Getter, Fe>>[0] & { hasher: ReturnType<Hasher> }
+) => void;
 
 /**
  * Represents an action that can be performed on an `EzValue` instance.
@@ -375,8 +399,8 @@ export type AsyncAction<
 
 export type ActionToAsynqAction<Getter extends Fetcher, A extends object> = {
   [Key in keyof A]: A[Key] extends Action<Getter>
-  ? AsyncAction<Getter, A[Key]>
-  : never;
+    ? AsyncAction<Getter, A[Key]>
+    : never;
 };
 
 /**
